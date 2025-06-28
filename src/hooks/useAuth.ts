@@ -4,8 +4,8 @@ import { db } from '../config/firebase';
 
 interface UserProfile {
   username: string;
+  name: string;
   createdAt: Date;
-  lastLogin: Date;
 }
 
 export const useAuth = () => {
@@ -33,8 +33,8 @@ export const useAuth = () => {
         const data = userDoc.data();
         setUserProfile({
           username: data.username,
-          createdAt: data.createdAt.toDate(),
-          lastLogin: data.lastLogin.toDate()
+          name: data.name,
+          createdAt: data.createdAt.toDate()
         });
       } else {
         // User doesn't exist in Firestore, clear localStorage
@@ -49,73 +49,71 @@ export const useAuth = () => {
     }
   };
 
-  const signInWithUsername = async (username: string): Promise<void> => {
-    if (!username || username.trim().length === 0) {
-      throw new Error('Username cannot be empty');
+  const checkUsernameAndCreateOrLogin = async (usernameInput: string): Promise<{ success: boolean; error?: string }> => {
+    if (!usernameInput || usernameInput.trim().length === 0) {
+      return { success: false, error: 'Username cannot be empty' };
     }
 
-    const trimmedUsername = username.trim().toLowerCase();
+    const trimmedUsername = usernameInput.trim().toLowerCase();
     
     // Basic username validation
     if (trimmedUsername.length < 2) {
-      throw new Error('Username must be at least 2 characters long');
+      return { success: false, error: 'Username must be at least 2 characters long' };
     }
     
     if (trimmedUsername.length > 20) {
-      throw new Error('Username must be 20 characters or less');
+      return { success: false, error: 'Username must be 20 characters or less' };
     }
     
     if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      throw new Error('Username can only contain letters, numbers, and underscores');
+      return { success: false, error: 'Username can only contain letters, numbers, and underscores' };
+    }
+
+    // Check for reserved usernames
+    const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
+    if (reservedNames.includes(trimmedUsername)) {
+      return { success: false, error: 'This username is reserved. Please choose another.' };
     }
 
     try {
       setError(null);
       setLoading(true);
 
+      // Step 1: Query Users where username == usernameInput
       const userDocRef = doc(db, 'users', trimmedUsername);
-      const userDoc = await getDoc(userDocRef);
+      const existingUser = await getDoc(userDocRef);
       
-      if (userDoc.exists()) {
-        // User exists, update last login
-        const existingData = userDoc.data();
-        const updatedProfile = {
-          username: trimmedUsername,
-          createdAt: existingData.createdAt,
-          lastLogin: serverTimestamp()
-        };
-        
-        await setDoc(userDocRef, updatedProfile, { merge: true });
-        
-        setUserProfile({
-          username: trimmedUsername,
-          createdAt: existingData.createdAt.toDate(),
-          lastLogin: new Date()
-        });
+      if (existingUser.exists()) {
+        // Step 3: User exists - show error
+        return { success: false, error: 'Username already exists. Please try another.' };
       } else {
-        // Create new user
+        // Step 2: User doesn't exist - create new user
         const newUserProfile = {
           username: trimmedUsername,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp()
+          name: trimmedUsername, // Using username as display name
+          createdAt: serverTimestamp()
         };
         
         await setDoc(userDocRef, newUserProfile);
         
+        // Set currentUser and navigate
         setUserProfile({
           username: trimmedUsername,
-          createdAt: new Date(),
-          lastLogin: new Date()
+          name: trimmedUsername,
+          createdAt: new Date()
         });
+        
+        // Store username in localStorage for session tracking
+        localStorage.setItem('jinjjamood_username', trimmedUsername);
+        
+        return { success: true };
       }
       
-      // Store username in localStorage for persistence
-      localStorage.setItem('jinjjamood_username', trimmedUsername);
-      
     } catch (err: any) {
-      console.error('Sign in error:', err);
-      setError(err.message || 'Failed to sign in');
-      throw err;
+      console.error('Username check error:', err);
+      const errorMessage = err.message || 'Failed to process username';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -131,7 +129,7 @@ export const useAuth = () => {
     userProfile,
     loading,
     error,
-    signInWithUsername,
+    checkUsernameAndCreateOrLogin,
     logout,
     isAuthenticated: !!userProfile
   };

@@ -1,41 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const LoginPage: React.FC = () => {
-  const { signInWithUsername, loading, error } = useAuth();
+  const { checkUsernameAndCreateOrLogin, loading } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
-  const [username, setUsername] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  // Update error message when auth error changes
-  useEffect(() => {
-    if (error) {
-      setErrorMessage(error);
-    }
-  }, [error]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleButtonClick = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setIsProcessing(true);
     
     try {
-      await signInWithUsername(username);
+      const result = await checkUsernameAndCreateOrLogin(usernameInput);
+      
+      if (!result.success && result.error) {
+        setErrorMessage(result.error);
+      }
+      // If success, the useAuth hook will automatically update and redirect
     } catch (err: any) {
-      console.error('Sign in error:', err);
-      setErrorMessage(err.message || 'Failed to sign in');
+      console.error('Login error:', err);
+      setErrorMessage(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-    setUsername(value);
-    setErrorMessage('');
+    setUsernameInput(value);
+    setErrorMessage(''); // Clear error when user starts typing
   };
+
+  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100">
@@ -81,7 +85,7 @@ export const LoginPage: React.FC = () => {
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to JinjjaMood</h2>
             <p className="text-gray-600 text-sm">
-              Choose a username to start tracking your jinjja vibes
+              No signup needed — just use a unique name
             </p>
           </div>
 
@@ -99,7 +103,7 @@ export const LoginPage: React.FC = () => {
           )}
 
           {/* Username Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleButtonClick} className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Username
@@ -111,12 +115,13 @@ export const LoginPage: React.FC = () => {
                 <input
                   type="text"
                   id="username"
-                  value={username}
+                  value={usernameInput}
                   onChange={handleUsernameChange}
                   placeholder="your_username"
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                   maxLength={20}
                   required
+                  disabled={isProcessing}
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
@@ -126,21 +131,21 @@ export const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading || username.length < 2}
+              disabled={isButtonDisabled}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden"
             >
               {/* Button glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></div>
               
               <span className="relative flex items-center justify-center gap-3">
-                {loading ? (
+                {isProcessing ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Signing in...
+                    <Loader className="animate-spin h-5 w-5" />
+                    Checking username...
                   </>
                 ) : (
                   <>
-                    Start Your Journey
+                    Login / Create Account
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
@@ -166,7 +171,7 @@ export const LoginPage: React.FC = () => {
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <User size={12} className="text-blue-600" />
               </div>
-              <span>Simple username-based access</span>
+              <span>Instant access with unique username</span>
             </div>
           </div>
         </div>
@@ -180,8 +185,8 @@ export const LoginPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Simple & Private</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your mood data is stored securely. Choose any username you like - 
-            if it exists, you'll sign in; if not, we'll create it for you.
+            Your mood data is stored securely. Choose any unique username - 
+            if it's available, we'll create your account instantly.
           </p>
         </div>
       </div>
