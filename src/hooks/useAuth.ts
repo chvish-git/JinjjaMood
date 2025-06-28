@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
 
@@ -72,6 +72,24 @@ export const useAuth = () => {
       setLoading(false);
     });
 
+    // Check for redirect result on page load
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          // User signed in via redirect
+          console.log('User signed in via redirect');
+        }
+      } catch (err: any) {
+        console.error('Redirect result error:', err);
+        if (err.message?.includes('Gmail')) {
+          setError('Only Gmail accounts are allowed');
+        }
+      }
+    };
+
+    checkRedirectResult();
+
     return () => unsubscribe();
   }, []);
 
@@ -80,12 +98,30 @@ export const useAuth = () => {
       setError(null);
       setLoading(true);
       
-      const result = await signInWithPopup(auth, googleProvider);
-      
-      // Double-check Gmail domain
-      if (!result.user.email?.endsWith('@gmail.com')) {
-        await signOut(auth);
-        throw new Error('Only Gmail accounts are allowed');
+      // First try popup
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        // Double-check Gmail domain
+        if (!result.user.email?.endsWith('@gmail.com')) {
+          await signOut(auth);
+          throw new Error('Only Gmail accounts are allowed');
+        }
+        
+        return result;
+      } catch (popupError: any) {
+        console.log('Popup error:', popupError.code);
+        
+        // If popup was blocked or closed, try redirect as fallback
+        if (popupError.code === 'auth/popup-blocked') {
+          console.log('Popup blocked, trying redirect...');
+          await signInWithRedirect(auth, googleProvider);
+          return; // Redirect will handle the rest
+        } else if (popupError.code === 'auth/popup-closed-by-user') {
+          throw new Error('Sign in was cancelled');
+        } else {
+          throw popupError;
+        }
       }
       
     } catch (err: any) {
@@ -95,9 +131,15 @@ export const useAuth = () => {
         setError('Sign in was cancelled');
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups and try again.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your connection and try again.');
+      } else if (err.message?.includes('Gmail')) {
+        setError('Only Gmail accounts are allowed');
       } else {
         setError(err.message || 'Failed to sign in with Google');
       }
+      
+      throw err;
     } finally {
       setLoading(false);
     }
