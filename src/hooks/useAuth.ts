@@ -41,9 +41,14 @@ export const useAuth = () => {
         localStorage.removeItem('jinjjamood_username');
         setUserProfile(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading user profile:', err);
-      setError('Failed to load user profile. Please check your Firebase configuration.');
+      
+      if (err.code === 'permission-denied') {
+        setError('Firebase permission error: Please configure your Firestore security rules to allow access to the users collection. Visit your Firebase Console > Firestore Database > Rules and update them accordingly.');
+      } else {
+        setError('Failed to load user profile. Please check your Firebase configuration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -141,14 +146,34 @@ export const useAuth = () => {
       // Provide more specific error messages based on Firebase error codes
       let errorMessage = 'Failed to process username';
       
-      if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Firebase connection failed. Please check your Firebase configuration in the .env file.';
-      } else if (err.code === 'permission-denied') {
-        errorMessage = 'Permission denied. Please check your Firebase security rules.';
+      if (err.code === 'permission-denied') {
+        errorMessage = `Firebase Permission Error: Your Firestore security rules are blocking access to the users collection. 
+
+To fix this issue:
+1. Go to your Firebase Console (https://console.firebase.google.com)
+2. Select your project
+3. Navigate to Firestore Database > Rules
+4. Update your rules to allow read/write access to the users collection
+
+For development, you can use these rules:
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+  }
+}
+
+⚠️ Remember to implement proper security rules before production deployment!`;
+      } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
+        errorMessage = 'Firebase connection failed. Please check your Firebase configuration in the .env file and ensure your internet connection is stable.';
       } else if (err.code === 'not-found') {
-        errorMessage = 'Firebase project not found. Please verify your project configuration.';
+        errorMessage = 'Firebase project not found. Please verify your project configuration in the .env file.';
+      } else if (err.code === 'invalid-argument') {
+        errorMessage = 'Invalid Firebase configuration. Please check your project settings and API keys.';
       } else if (err.message) {
-        errorMessage = err.message;
+        errorMessage = `Firebase Error: ${err.message}`;
       }
       
       setError(errorMessage);
