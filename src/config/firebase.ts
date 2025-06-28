@@ -3,14 +3,14 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
-// Note: These are public configuration values, not secret keys
 const firebaseConfig = {
-  apiKey: "your-api-key-here",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
+  apiKey: "AIzaSyBp_36FRxKJOQLwI3nb1xyV_QvwGmGwE0Q",
+  authDomain: "jinjjamood.firebaseapp.com",
+  projectId: "jinjjamood",
+  storageBucket: "jinjjamood.firebasestorage.app",
+  messagingSenderId: "839609257734",
+  appId: "1:839609257734:web:ee4b1cb64a8de8471b5887",
+  measurementId: "G-M6GVPB2471"
 };
 
 // Initialize Firebase
