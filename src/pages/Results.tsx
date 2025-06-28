@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Heart, TrendingUp, BarChart3, Home, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Heart, TrendingUp, BarChart3, Home, RefreshCw, Sparkles } from 'lucide-react';
 import { getLatestMoodLog, getMoodLogs } from '../utils/storage';
-import { getRandomVibeQuote } from '../data/vibeQuotes';
+import { getPersonalizedQuote, getDailyTheme, getThemeEmoji } from '../data/vibeQuotes';
 import { MoodLog } from '../types/mood';
+import { VibeQuote } from '../types/vibeQuote';
 
 interface ResultsProps {
   isDark: boolean;
@@ -13,13 +14,24 @@ interface ResultsProps {
 export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood }) => {
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
-  const [vibeQuote, setVibeQuote] = useState<string>('');
+  const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
+  const [dailyTheme, setDailyTheme] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    setLatestLog(getLatestMoodLog());
-    setAllLogs(getMoodLogs());
-    setVibeQuote(getRandomVibeQuote());
+    const latest = getLatestMoodLog();
+    const logs = getMoodLogs();
+    
+    setLatestLog(latest);
+    setAllLogs(logs);
+    setDailyTheme(getDailyTheme());
+    
+    if (latest) {
+      // Get personalized quote based on user's mood and daily theme
+      const personalizedQuote = getPersonalizedQuote(latest.mood as any);
+      setVibeQuote(personalizedQuote);
+    }
+    
     setIsVisible(true);
   }, []);
 
@@ -115,25 +127,46 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood }) =
           }`}>
             Today's Jinjja Vibe ✨
           </h1>
+          
+          {vibeQuote && (
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Today's theme: {dailyTheme}
+              </span>
+              <span className="text-lg">{getThemeEmoji(vibeQuote.theme)}</span>
+            </div>
+          )}
         </div>
 
-        {/* Vibe Quote Box */}
-        <div className={`mb-8 max-w-2xl mx-auto transform transition-all duration-1000 delay-200 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <div className={`p-8 rounded-3xl backdrop-blur-sm border shadow-2xl ${
-            isDark 
-              ? 'bg-white/10 border-white/20 text-white' 
-              : 'bg-white/80 border-gray-200 text-gray-800'
+        {/* Personalized Vibe Quote Box */}
+        {vibeQuote && (
+          <div className={`mb-8 max-w-2xl mx-auto transform transition-all duration-1000 delay-200 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className="text-center">
-              <div className="text-2xl mb-4">💫</div>
-              <p className="text-lg md:text-xl leading-relaxed font-medium italic">
-                "{vibeQuote}"
-              </p>
+            <div className={`p-8 rounded-3xl backdrop-blur-sm border shadow-2xl ${
+              isDark 
+                ? 'bg-white/10 border-white/20 text-white' 
+                : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <span className="text-2xl">{getThemeEmoji(vibeQuote.theme)}</span>
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                    isDark ? 'bg-white/20' : 'bg-gray-100'
+                  }`}>
+                    {vibeQuote.theme} • {vibeQuote.mood}
+                  </span>
+                </div>
+                <p className="text-lg md:text-xl leading-relaxed font-medium italic">
+                  "{vibeQuote.text}"
+                </p>
+                <div className={`mt-4 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Matched to your {latestLog.mood.toLowerCase()} mood
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Latest Mood Reflection */}
         <div className={`mb-8 transform transition-all duration-1000 delay-400 ${
