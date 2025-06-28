@@ -43,7 +43,7 @@ export const useAuth = () => {
       }
     } catch (err) {
       console.error('Error loading user profile:', err);
-      setError('Failed to load user profile');
+      setError('Failed to load user profile. Please check your Firebase configuration.');
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,20 @@ export const useAuth = () => {
       
     } catch (err: any) {
       console.error('Username check error:', err);
-      const errorMessage = err.message || 'Failed to process username';
+      
+      // Provide more specific error messages based on Firebase error codes
+      let errorMessage = 'Failed to process username';
+      
+      if (err.code === 'unavailable' || err.message?.includes('offline')) {
+        errorMessage = 'Firebase connection failed. Please check your Firebase configuration in the .env file.';
+      } else if (err.code === 'permission-denied') {
+        errorMessage = 'Permission denied. Please check your Firebase security rules.';
+      } else if (err.code === 'not-found') {
+        errorMessage = 'Firebase project not found. Please verify your project configuration.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
