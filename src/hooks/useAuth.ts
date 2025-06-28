@@ -75,6 +75,11 @@ export const useAuth = () => {
       return { success: false, error: 'This username is reserved. Please choose another.' };
     }
 
+    // Check network connectivity before attempting Firebase operations
+    if (!navigator.onLine) {
+      return { success: false, error: 'You are offline. Please connect to the internet to log in or create an account.' };
+    }
+
     try {
       setError(null);
       setLoading(true);
