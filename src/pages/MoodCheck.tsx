@@ -11,9 +11,10 @@ interface MoodCheckProps {
   isDark: boolean;
   onBack: () => void;
   onSubmit: () => void;
+  username: string;
 }
 
-export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit }) => {
+export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, username }) => {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -37,7 +38,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit }
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
         timestamp: new Date()
-      });
+      }, username);
 
       // Trigger confetti
       confetti({

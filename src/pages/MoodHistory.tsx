@@ -8,12 +8,13 @@ interface MoodHistoryProps {
   isDark: boolean;
   onBack: () => void;
   onNewMood: () => void;
+  username: string;
 }
 
 type DateRange = '7' | '14' | '30' | 'all';
 type MoodFilter = 'all' | MoodType;
 
-export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewMood }) => {
+export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewMood, username }) => {
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<MoodLog[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>('30');
@@ -24,7 +25,7 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
   useEffect(() => {
     const loadLogs = async () => {
       try {
-        const logs = await getMoodLogs();
+        const logs = await getMoodLogs(username);
         const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setAllLogs(sortedLogs);
       } catch (error) {
@@ -36,7 +37,7 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
     };
 
     loadLogs();
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     let filtered = [...allLogs];

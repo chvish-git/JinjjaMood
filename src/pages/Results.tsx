@@ -11,9 +11,10 @@ interface ResultsProps {
   onBack: () => void;
   onNewMood: () => void;
   onViewHistory: () => void;
+  username: string;
 }
 
-export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onViewHistory }) => {
+export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onViewHistory, username }) => {
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
@@ -25,8 +26,8 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
     const loadData = async () => {
       try {
         const [latest, logs] = await Promise.all([
-          getLatestMoodLog(),
-          getMoodLogs()
+          getLatestMoodLog(username),
+          getMoodLogs(username)
         ]);
         
         setLatestLog(latest);
@@ -47,7 +48,7 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
     };
 
     loadData();
-  }, []);
+  }, [username]);
 
   const getMoodEmoji = (mood: string) => {
     const emojiMap: { [key: string]: string } = {

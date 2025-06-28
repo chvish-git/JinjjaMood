@@ -1,21 +1,19 @@
 import { MoodLog } from '../types/mood';
-import { collection, addDoc, query, orderBy, getDocs, where, limit } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, getDocs, where, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { auth } from '../config/firebase';
 
 const COLLECTION_NAME = 'moodLogs';
 
-export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>): Promise<MoodLog> => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User must be authenticated to save mood logs');
+export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, username: string): Promise<MoodLog> => {
+  if (!username) {
+    throw new Error('Username is required to save mood logs');
   }
 
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...moodLog,
-      userId: user.uid,
-      timestamp: moodLog.timestamp
+      username: username,
+      timestamp: serverTimestamp()
     });
 
     return {
@@ -25,21 +23,20 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>): Promise<MoodLog
   } catch (error) {
     console.error('Error saving mood log:', error);
     // Fallback to localStorage for offline functionality
-    return saveMoodLogLocal(moodLog);
+    return saveMoodLogLocal(moodLog, username);
   }
 };
 
-export const getMoodLogs = async (): Promise<MoodLog[]> => {
-  const user = auth.currentUser;
-  if (!user) {
-    // Return local storage data if not authenticated
-    return getMoodLogsLocal();
+export const getMoodLogs = async (username: string): Promise<MoodLog[]> => {
+  if (!username) {
+    // Return local storage data if no username
+    return getMoodLogsLocal(username);
   }
 
   try {
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('userId', '==', user.uid),
+      where('username', '==', username),
       orderBy('timestamp', 'desc')
     );
     
@@ -60,20 +57,19 @@ export const getMoodLogs = async (): Promise<MoodLog[]> => {
   } catch (error) {
     console.error('Error fetching mood logs:', error);
     // Fallback to localStorage
-    return getMoodLogsLocal();
+    return getMoodLogsLocal(username);
   }
 };
 
-export const getLatestMoodLog = async (): Promise<MoodLog | null> => {
-  const user = auth.currentUser;
-  if (!user) {
-    return getLatestMoodLogLocal();
+export const getLatestMoodLog = async (username: string): Promise<MoodLog | null> => {
+  if (!username) {
+    return getLatestMoodLogLocal(username);
   }
 
   try {
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('userId', '==', user.uid),
+      where('username', '==', username),
       orderBy('timestamp', 'desc'),
       limit(1)
     );
@@ -95,28 +91,28 @@ export const getLatestMoodLog = async (): Promise<MoodLog | null> => {
     };
   } catch (error) {
     console.error('Error fetching latest mood log:', error);
-    return getLatestMoodLogLocal();
+    return getLatestMoodLogLocal(username);
   }
 };
 
 // Fallback localStorage functions for offline functionality
 const STORAGE_KEY = 'jinjjamood_logs';
 
-const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id'>): MoodLog => {
-  const logs = getMoodLogsLocal();
+const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id'>, username: string): MoodLog => {
+  const logs = getMoodLogsLocal(username);
   const newLog: MoodLog = {
     ...moodLog,
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
   };
   
   logs.push(newLog);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  localStorage.setItem(`${STORAGE_KEY}_${username}`, JSON.stringify(logs));
   return newLog;
 };
 
-const getMoodLogsLocal = (): MoodLog[] => {
+const getMoodLogsLocal = (username: string): MoodLog[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(`${STORAGE_KEY}_${username}`);
     if (!stored) return [];
     
     const logs = JSON.parse(stored);
@@ -130,8 +126,8 @@ const getMoodLogsLocal = (): MoodLog[] => {
   }
 };
 
-const getLatestMoodLogLocal = (): MoodLog | null => {
-  const logs = getMoodLogsLocal();
+const getLatestMoodLogLocal = (username: string): MoodLog | null => {
+  const logs = getMoodLogsLocal(username);
   if (logs.length === 0) return null;
   
   return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];

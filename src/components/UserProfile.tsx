@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, User, Calendar } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface UserProfileProps {
@@ -25,9 +25,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
             <User size={16} />
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium">{userProfile.name}</p>
+            <p className="text-sm font-medium">@{userProfile.username}</p>
             <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              {userProfile.email}
+              Member since {userProfile.createdAt.toLocaleDateString()}
             </p>
           </div>
         </div>

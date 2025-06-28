@@ -5,6 +5,7 @@ import { UserProfile } from './components/UserProfile';
 import { MoodCheck } from './pages/MoodCheck';
 import { Results } from './pages/Results';
 import { MoodHistory } from './pages/MoodHistory';
+import { useAuth } from './hooks/useAuth';
 
 const memeLines = [
   "Your vibe is valid. Even if it's unhinged.",
@@ -21,6 +22,7 @@ function App() {
   const [currentMemeIndex, setCurrentMemeIndex] = useState(0);
   const [isDark, setIsDark] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const { userProfile } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
@@ -64,6 +66,7 @@ function App() {
             isDark={isDark}
             onBack={handleBackToHome}
             onSubmit={handleMoodSubmit}
+            username={userProfile?.username || ''}
           />
           {/* Bolt.new Badge */}
           <a
@@ -88,6 +91,7 @@ function App() {
             onBack={handleBackToHome}
             onNewMood={handleNewMoodCheck}
             onViewHistory={handleViewHistory}
+            username={userProfile?.username || ''}
           />
           {/* Bolt.new Badge */}
           <a
@@ -111,6 +115,7 @@ function App() {
             isDark={isDark}
             onBack={handleBackToHome}
             onNewMood={handleNewMoodCheck}
+            username={userProfile?.username || ''}
           />
           {/* Bolt.new Badge */}
           <a
