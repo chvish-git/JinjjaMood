@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Filter, Download, TrendingUp, BarChart3, Clock, BookOpen } from 'lucide-react';
 import { getMoodLogs } from '../utils/storage';
+import { UserProfile } from '../components/UserProfile';
 import { MoodLog, MoodType } from '../types/mood';
 
 interface MoodHistoryProps {
@@ -18,11 +19,23 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
   const [dateRange, setDateRange] = useState<DateRange>('30');
   const [moodFilter, setMoodFilter] = useState<MoodFilter>('all');
   const [isVisible, setIsVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const logs = getMoodLogs().sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    setAllLogs(logs);
-    setIsVisible(true);
+    const loadLogs = async () => {
+      try {
+        const logs = await getMoodLogs();
+        const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setAllLogs(sortedLogs);
+      } catch (error) {
+        console.error('Error loading mood logs:', error);
+      } finally {
+        setLoading(false);
+        setIsVisible(true);
+      }
+    };
+
+    loadLogs();
   }, []);
 
   useEffect(() => {
@@ -114,6 +127,23 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
     URL.revokeObjectURL(url);
   };
 
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDark 
+          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            Loading your mood history...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (allLogs.length === 0) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
@@ -156,8 +186,11 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
         }`}></div>
       </div>
 
+      {/* User Profile */}
+      <UserProfile isDark={isDark} />
+
       {/* Back button */}
-      <div className="absolute top-6 left-6 z-10">
+      <div className="absolute top-6 right-6 z-10">
         <button
           onClick={onBack}
           className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${

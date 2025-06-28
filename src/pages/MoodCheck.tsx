@@ -3,6 +3,7 @@ import { ArrowLeft, Send, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MoodSelector } from '../components/MoodSelector';
 import { JournalInput } from '../components/JournalInput';
+import { UserProfile } from '../components/UserProfile';
 import { MoodType } from '../types/mood';
 import { saveMoodLog } from '../utils/storage';
 
@@ -30,25 +31,31 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit }
 
     setIsSubmitting(true);
 
-    // Save to localStorage (simulating database)
-    saveMoodLog({
-      mood: selectedMood,
-      journalEntry: journalEntry.trim(),
-      timestamp: new Date()
-    });
+    try {
+      // Save to Firestore (with localStorage fallback)
+      await saveMoodLog({
+        mood: selectedMood,
+        journalEntry: journalEntry.trim(),
+        timestamp: new Date()
+      });
 
-    // Trigger confetti
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#FF6B9D', '#A855F7', '#06B6D4', '#10B981', '#F59E0B']
-    });
+      // Trigger confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FF6B9D', '#A855F7', '#06B6D4', '#10B981', '#F59E0B']
+      });
 
-    // Small delay for confetti effect
-    setTimeout(() => {
-      onSubmit();
-    }, 1000);
+      // Small delay for confetti effect
+      setTimeout(() => {
+        onSubmit();
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving mood log:', error);
+      alert('Failed to save mood log. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -67,8 +74,11 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit }
         }`}></div>
       </div>
 
+      {/* User Profile */}
+      <UserProfile isDark={isDark} />
+
       {/* Back button */}
-      <div className="absolute top-6 left-6 z-10">
+      <div className="absolute top-6 right-6 z-10">
         <button
           onClick={onBack}
           className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${

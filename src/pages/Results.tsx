@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Heart, TrendingUp, BarChart3, Home, RefreshCw, Sparkles } from 'lucide-react';
 import { getLatestMoodLog, getMoodLogs } from '../utils/storage';
 import { getPersonalizedQuote, getDailyTheme, getThemeEmoji } from '../data/vibeQuotes';
+import { UserProfile } from '../components/UserProfile';
 import { MoodLog } from '../types/mood';
 import { VibeQuote } from '../types/vibeQuote';
 
@@ -18,22 +19,34 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
   const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
   const [dailyTheme, setDailyTheme] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const latest = getLatestMoodLog();
-    const logs = getMoodLogs();
-    
-    setLatestLog(latest);
-    setAllLogs(logs);
-    setDailyTheme(getDailyTheme());
-    
-    if (latest) {
-      // Get personalized quote based on user's mood and daily theme
-      const personalizedQuote = getPersonalizedQuote(latest.mood as any);
-      setVibeQuote(personalizedQuote);
-    }
-    
-    setIsVisible(true);
+    const loadData = async () => {
+      try {
+        const [latest, logs] = await Promise.all([
+          getLatestMoodLog(),
+          getMoodLogs()
+        ]);
+        
+        setLatestLog(latest);
+        setAllLogs(logs);
+        setDailyTheme(getDailyTheme());
+        
+        if (latest) {
+          // Get personalized quote based on user's mood and daily theme
+          const personalizedQuote = getPersonalizedQuote(latest.mood as any);
+          setVibeQuote(personalizedQuote);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+        setIsVisible(true);
+      }
+    };
+
+    loadData();
   }, []);
 
   const getMoodEmoji = (mood: string) => {
@@ -63,6 +76,23 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
     weekAgo.setDate(weekAgo.getDate() - 7);
     return allLogs.filter(log => log.timestamp >= weekAgo);
   };
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDark 
+          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            Loading your vibe...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!latestLog) {
     return (
@@ -102,8 +132,11 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
         }`}></div>
       </div>
 
+      {/* User Profile */}
+      <UserProfile isDark={isDark} />
+
       {/* Back button */}
-      <div className="absolute top-6 left-6 z-10">
+      <div className="absolute top-6 right-6 z-10">
         <button
           onClick={onBack}
           className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${
