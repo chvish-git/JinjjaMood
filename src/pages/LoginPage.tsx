@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, UserPlus } from 'lucide-react';
+import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const LoginPage: React.FC = () => {
@@ -9,7 +9,6 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSignupMode, setIsSignupMode] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -22,7 +21,7 @@ export const LoginPage: React.FC = () => {
     setIsProcessing(true);
     
     try {
-      const result = await checkUsernameAndCreateOrLogin(usernameInput, isSignupMode);
+      const result = await checkUsernameAndCreateOrLogin(usernameInput);
       
       if (result.success) {
         if (result.isNewUser) {
@@ -93,49 +92,10 @@ export const LoginPage: React.FC = () => {
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {isSignupMode ? 'Create Account' : 'Welcome Back'}
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to JinjjaMood</h2>
             <p className="text-gray-600 text-sm">
-              {isSignupMode 
-                ? 'Choose a unique username to get started' 
-                : 'Enter your username to continue'
-              }
+              Enter a unique username to get started
             </p>
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignupMode(false);
-                setErrorMessage('');
-                setSuccessMessage('');
-              }}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
-                !isSignupMode 
-                  ? 'bg-white text-purple-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignupMode(true);
-                setErrorMessage('');
-                setSuccessMessage('');
-              }}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
-                isSignupMode 
-                  ? 'bg-white text-purple-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Sign Up
-            </button>
           </div>
 
           {/* Success Message */}
@@ -203,21 +163,12 @@ export const LoginPage: React.FC = () => {
                 {isProcessing ? (
                   <>
                     <Loader className="animate-spin h-5 w-5" />
-                    {isSignupMode ? 'Creating account...' : 'Logging in...'}
+                    Processing...
                   </>
                 ) : (
                   <>
-                    {isSignupMode ? (
-                      <>
-                        <UserPlus size={18} />
-                        Create Account
-                      </>
-                    ) : (
-                      <>
-                        Login
-                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
-                      </>
-                    )}
+                    Login / Create Account
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </span>
@@ -256,10 +207,8 @@ export const LoginPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Simple & Private</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your mood data is stored securely. {isSignupMode 
-              ? 'Choose any unique username to create your account instantly.' 
-              : 'Enter your username to access your mood history.'
-            }
+            Your mood data is stored securely. Choose any unique username - 
+            if it's available, we'll create your account instantly. If it exists, you'll be logged in.
           </p>
         </div>
       </div>

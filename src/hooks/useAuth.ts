@@ -45,7 +45,7 @@ export const useAuth = () => {
       console.error('Error loading user profile:', err);
       
       if (err.code === 'permission-denied') {
-        setError('Firebase permission error: Please configure your Firestore security rules to allow access to the users collection. Visit your Firebase Console > Firestore Database > Rules and update them accordingly.');
+        setError('Firebase permission error: Please configure your Firestore security rules to allow access to the users collection.');
       } else {
         setError('Failed to load user profile. Please check your Firebase configuration.');
       }
@@ -54,14 +54,9 @@ export const useAuth = () => {
     }
   };
 
-  const checkUsernameAndCreateOrLogin = async (usernameInput: string, isSignup: boolean = false): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> => {
-    // TC-LOGIN-003: Empty username validation
+  const checkUsernameAndCreateOrLogin = async (usernameInput: string): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> => {
+    // TC-LOGIN-003 & TC-LOGIN-004: Empty and whitespace validation
     if (!usernameInput || usernameInput.trim().length === 0) {
-      return { success: false, error: 'Please enter a valid username.' };
-    }
-
-    // TC-LOGIN-004: Whitespace-only username validation
-    if (usernameInput.trim() !== usernameInput || usernameInput.trim().length === 0) {
       return { success: false, error: 'Please enter a valid username.' };
     }
 
@@ -86,25 +81,20 @@ export const useAuth = () => {
       return { success: false, error: 'This username is reserved. Please choose another.' };
     }
 
-    // Check network connectivity before attempting Firebase operations
+    // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'You are offline. Please connect to the internet to log in or create an account.' };
+      return { success: false, error: 'You are offline. Please connect to the internet to continue.' };
     }
 
     try {
       setError(null);
       setLoading(true);
 
-      // Check if user exists
+      // Check if user exists in database
       const userDocRef = doc(db, 'users', trimmedUsername);
       const existingUser = await getDoc(userDocRef);
       
       if (existingUser.exists()) {
-        // TC-LOGIN-002: Handle duplicate username for signup
-        if (isSignup) {
-          return { success: false, error: 'Username already exists.' };
-        }
-        
         // TC-LOGIN-005: Existing user logs in
         const userData = existingUser.data();
         setUserProfile({
@@ -118,7 +108,7 @@ export const useAuth = () => {
         
         return { success: true, isNewUser: false };
       } else {
-        // TC-LOGIN-001: Create new user
+        // TC-LOGIN-001: Create new user with unique username
         const newUserProfile = {
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
@@ -127,7 +117,7 @@ export const useAuth = () => {
         
         await setDoc(userDocRef, newUserProfile);
         
-        // Set currentUser and navigate
+        // Set user profile
         setUserProfile({
           username: trimmedUsername,
           name: trimmedUsername,
@@ -143,37 +133,19 @@ export const useAuth = () => {
     } catch (err: any) {
       console.error('Username check error:', err);
       
-      // Provide more specific error messages based on Firebase error codes
+      // Provide specific error messages based on Firebase error codes
       let errorMessage = 'Failed to process username';
       
       if (err.code === 'permission-denied') {
-        errorMessage = `Firebase Permission Error: Your Firestore security rules are blocking access to the users collection. 
-
-To fix this issue:
-1. Go to your Firebase Console (https://console.firebase.google.com)
-2. Select your project
-3. Navigate to Firestore Database > Rules
-4. Update your rules to allow read/write access to the users collection
-
-For development, you can use these rules:
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-  }
-}
-
-⚠️ Remember to implement proper security rules before production deployment!`;
+        errorMessage = 'Permission denied. Please check your Firebase security rules.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Firebase connection failed. Please check your Firebase configuration in the .env file and ensure your internet connection is stable.';
+        errorMessage = 'Firebase connection failed. Please check your internet connection.';
       } else if (err.code === 'not-found') {
-        errorMessage = 'Firebase project not found. Please verify your project configuration in the .env file.';
+        errorMessage = 'Firebase project not found. Please verify your project configuration.';
       } else if (err.code === 'invalid-argument') {
-        errorMessage = 'Invalid Firebase configuration. Please check your project settings and API keys.';
+        errorMessage = 'Invalid Firebase configuration. Please check your project settings.';
       } else if (err.message) {
-        errorMessage = `Firebase Error: ${err.message}`;
+        errorMessage = `Error: ${err.message}`;
       }
       
       setError(errorMessage);
