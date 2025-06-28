@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Filter, Download, TrendingUp, BarChart3, Clock, BookOpen, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, Download, TrendingUp, BarChart3, Clock, BookOpen, AlertCircle, Lightbulb, Target, Award } from 'lucide-react';
 import { getMoodLogs } from '../utils/storage';
 import { UserProfile } from '../components/UserProfile';
+import { MoodTrendChart } from '../components/charts/MoodTrendChart';
+import { MoodDistributionChart } from '../components/charts/MoodDistributionChart';
+import { WeeklyMoodChart } from '../components/charts/WeeklyMoodChart';
+import { generateMoodInsights, calculateMoodStats, MoodInsight } from '../utils/moodAnalysis';
 import { MoodLog, MoodType } from '../types/mood';
 
 interface MoodHistoryProps {
@@ -13,12 +17,15 @@ interface MoodHistoryProps {
 
 type DateRange = '7' | '14' | '30' | 'all';
 type MoodFilter = 'all' | MoodType;
+type ChartView = 'trend' | 'distribution' | 'weekly';
 
 export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewMood, username }) => {
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<MoodLog[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>('30');
   const [moodFilter, setMoodFilter] = useState<MoodFilter>('all');
+  const [chartView, setChartView] = useState<ChartView>('trend');
+  const [insights, setInsights] = useState<MoodInsight[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +37,10 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
         const logs = await getMoodLogs(username);
         const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setAllLogs(sortedLogs);
+        
+        // Generate insights
+        const moodInsights = generateMoodInsights(sortedLogs);
+        setInsights(moodInsights);
       } catch (error: any) {
         console.error('Error loading mood logs:', error);
         setError(error.message || 'Failed to load mood logs');
@@ -82,35 +93,7 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
     return colorMap[mood] || 'bg-gray-500';
   };
 
-  const getMoodValue = (mood: string): number => {
-    const valueMap: { [key: string]: number } = {
-      'Sad': 1,
-      'Stressed': 2,
-      'Neutral': 3,
-      'Good': 4,
-      'Hyped': 5
-    };
-    return valueMap[mood] || 3;
-  };
-
-  const getMoodStats = () => {
-    if (filteredLogs.length === 0) return {};
-
-    const moodCounts = filteredLogs.reduce((acc, log) => {
-      acc[log.mood] = (acc[log.mood] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number });
-
-    const mostCommonMood = Object.entries(moodCounts).reduce((a, b) => 
-      moodCounts[a[0]] > moodCounts[b[0]] ? a : b
-    )[0];
-
-    const averageMood = filteredLogs.reduce((sum, log) => sum + getMoodValue(log.mood), 0) / filteredLogs.length;
-
-    return { moodCounts, mostCommonMood, averageMood };
-  };
-
-  const stats = getMoodStats();
+  const stats = calculateMoodStats(filteredLogs);
 
   const exportMoodData = () => {
     const csvContent = [
@@ -129,6 +112,24 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
     a.download = `jinjjamood-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'pattern': return <Target className="w-5 h-5" />;
+      case 'streak': return <Award className="w-5 h-5" />;
+      case 'improvement': return <TrendingUp className="w-5 h-5" />;
+      case 'milestone': return <Award className="w-5 h-5" />;
+      default: return <Lightbulb className="w-5 h-5" />;
+    }
+  };
+
+  const getInsightColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return isDark ? 'border-yellow-500 bg-yellow-500/10' : 'border-yellow-400 bg-yellow-50';
+      case 'medium': return isDark ? 'border-blue-500 bg-blue-500/10' : 'border-blue-400 bg-blue-50';
+      default: return isDark ? 'border-gray-500 bg-gray-500/10' : 'border-gray-400 bg-gray-50';
+    }
   };
 
   if (loading) {
@@ -273,11 +274,55 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
           </p>
         </div>
 
+        {/* Insights Section */}
+        {insights.length > 0 && (
+          <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-200 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
+              isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
+            }`}>
+              <div className="flex items-center gap-3 mb-6">
+                <Lightbulb className={`${isDark ? 'text-yellow-400' : 'text-yellow-600'}`} size={24} />
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  Mood Insights
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {insights.map((insight, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border-l-4 ${getInsightColor(insight.priority)} ${
+                      isDark ? 'text-white' : 'text-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {getInsightIcon(insight.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">{insight.emoji}</span>
+                          <h4 className="font-semibold">{insight.title}</h4>
+                        </div>
+                        <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                          {insight.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
-        <div className={`max-w-4xl mx-auto mb-8 transform transition-all duration-1000 delay-200 ${
+        <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-300 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <Calendar size={18} className={isDark ? 'text-gray-400' : 'text-gray-600'} />
@@ -318,77 +363,108 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
               </div>
             </div>
 
-            <button
-              onClick={exportMoodData}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
-                isDark 
-                  ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
-                  : 'bg-black/10 text-gray-800 hover:bg-black/20 border border-gray-200'
-              }`}
-            >
-              <Download size={16} />
-              <span className="text-sm font-medium">Export</span>
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Chart View Toggle */}
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10">
+                {[
+                  { key: 'trend', label: 'Trend', icon: TrendingUp },
+                  { key: 'distribution', label: 'Distribution', icon: BarChart3 },
+                  { key: 'weekly', label: 'Weekly', icon: Calendar }
+                ].map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setChartView(key as ChartView)}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium transition-all duration-300 ${
+                      chartView === key
+                        ? isDark 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-white text-gray-800 shadow-sm'
+                        : isDark 
+                          ? 'text-gray-400 hover:text-white' 
+                          : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={exportMoodData}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
+                  isDark 
+                    ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
+                    : 'bg-black/10 text-gray-800 hover:bg-black/20 border border-gray-200'
+                }`}
+              >
+                <Download size={16} />
+                <span className="text-sm font-medium hidden sm:inline">Export</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        {stats.moodCounts && (
-          <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-400 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-          }`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
-                isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
-              }`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <BarChart3 className="text-purple-400" size={24} />
-                  <span className="font-semibold">Total Entries</span>
-                </div>
-                <p className="text-3xl font-bold">{filteredLogs.length}</p>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  in selected period
-                </p>
+        {/* Enhanced Stats Overview */}
+        <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-400 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        }`}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
+              isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="text-purple-400" size={20} />
+                <span className="font-semibold text-sm">Total</span>
               </div>
+              <p className="text-2xl font-bold">{stats.totalEntries}</p>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                entries
+              </p>
+            </div>
 
-              <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
-                isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
-              }`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <TrendingUp className="text-green-400" size={24} />
-                  <span className="font-semibold">Most Common</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{getMoodEmoji(stats.mostCommonMood)}</span>
-                  <span className="text-xl font-bold">{stats.mostCommonMood}</span>
-                </div>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {stats.moodCounts[stats.mostCommonMood]} times
-                </p>
+            <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
+              isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="text-green-400" size={20} />
+                <span className="font-semibold text-sm">Average</span>
               </div>
+              <p className="text-2xl font-bold">{stats.averageMood}/5</p>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                mood score
+              </p>
+            </div>
 
-              <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
-                isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
-              }`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <Clock className="text-blue-400" size={24} />
-                  <span className="font-semibold">Average Mood</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 via-yellow-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${(stats.averageMood / 5) * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-lg font-bold">{stats.averageMood.toFixed(1)}/5</span>
-                </div>
+            <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
+              isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="text-yellow-400" size={20} />
+                <span className="font-semibold text-sm">Streak</span>
+              </div>
+              <p className="text-2xl font-bold">{stats.currentStreak}</p>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                days
+              </p>
+            </div>
+
+            <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
+              isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="text-blue-400" size={20} />
+                <span className="font-semibold text-sm">Most Common</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-lg">{getMoodEmoji(stats.mostCommonMood)}</span>
+                <span className="text-sm font-bold">{stats.mostCommonMood}</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Mood Chart Visualization */}
+        {/* Advanced Chart Visualization */}
         <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-600 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
@@ -396,54 +472,17 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
             isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
           }`}>
             <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Mood Timeline
+              {chartView === 'trend' && 'Mood Trend Analysis'}
+              {chartView === 'distribution' && 'Mood Distribution'}
+              {chartView === 'weekly' && 'Weekly Mood Pattern'}
             </h3>
             
             {filteredLogs.length > 0 ? (
-              <div className="space-y-4">
-                {/* Simple timeline visualization */}
-                <div className="relative">
-                  <div className="flex items-end justify-between h-32 px-4">
-                    {filteredLogs.slice(0, 10).reverse().map((log, index) => {
-                      const height = (getMoodValue(log.mood) / 5) * 100;
-                      return (
-                        <div key={log.id} className="flex flex-col items-center group">
-                          <div
-                            className={`w-8 ${getMoodColor(log.mood)} rounded-t-lg transition-all duration-300 group-hover:scale-110 cursor-pointer`}
-                            style={{ height: `${height}%` }}
-                            title={`${log.mood} - ${log.timestamp.toLocaleDateString()}`}
-                          ></div>
-                          <div className="text-xs mt-2 text-center">
-                            <div className="text-lg">{getMoodEmoji(log.mood)}</div>
-                            <div className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {log.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Mood distribution */}
-                <div className="grid grid-cols-5 gap-2 mt-6">
-                  {['Sad', 'Stressed', 'Neutral', 'Good', 'Hyped'].map(mood => {
-                    const count = stats.moodCounts?.[mood] || 0;
-                    const percentage = filteredLogs.length > 0 ? (count / filteredLogs.length) * 100 : 0;
-                    
-                    return (
-                      <div key={mood} className="text-center">
-                        <div className={`h-2 rounded-full ${getMoodColor(mood)} mb-2`} 
-                             style={{ opacity: percentage / 100 }}></div>
-                        <div className="text-lg">{getMoodEmoji(mood)}</div>
-                        <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {count} ({percentage.toFixed(0)}%)
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <>
+                {chartView === 'trend' && <MoodTrendChart logs={filteredLogs} isDark={isDark} />}
+                {chartView === 'distribution' && <MoodDistributionChart logs={filteredLogs} isDark={isDark} />}
+                {chartView === 'weekly' && <WeeklyMoodChart logs={allLogs} isDark={isDark} />}
+              </>
             ) : (
               <div className="text-center py-8">
                 <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -464,13 +503,13 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
             <div className="flex items-center gap-3 mb-6">
               <BookOpen className={`${isDark ? 'text-white' : 'text-gray-800'}`} size={24} />
               <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Journal Entries
+                Recent Journal Entries
               </h3>
             </div>
 
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {filteredLogs.length > 0 ? (
-                filteredLogs.map((log) => (
+                filteredLogs.slice(0, 10).map((log) => (
                   <div
                     key={log.id}
                     className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] ${
