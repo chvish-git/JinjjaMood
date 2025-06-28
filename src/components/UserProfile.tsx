@@ -11,6 +11,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
 
   if (!userProfile) return null;
 
+  const handleLogout = () => {
+    // Clear all user data and redirect to login
+    logout();
+    // The AuthGuard will automatically redirect to LoginPage when isAuthenticated becomes false
+  };
+
   return (
     <div className="absolute top-6 left-6 z-10">
       <div className={`flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-300 ${
@@ -33,15 +39,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
         </div>
         
         <button
-          onClick={logout}
-          className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
+          onClick={handleLogout}
+          className={`p-2 rounded-full transition-all duration-300 hover:scale-110 group ${
             isDark 
               ? 'hover:bg-white/20 text-gray-300 hover:text-white' 
               : 'hover:bg-black/20 text-gray-600 hover:text-gray-800'
           }`}
           title="Sign out"
         >
-          <LogOut size={16} />
+          <LogOut size={16} className="group-hover:rotate-12 transition-transform duration-300" />
         </button>
       </div>
     </div>
