@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Moon, Sun } from 'lucide-react';
+import { MoodCheck } from './pages/MoodCheck';
+import { Results } from './pages/Results';
 
 const memeLines = [
   "Your vibe is valid. Even if it's unhinged.",
@@ -9,7 +11,10 @@ const memeLines = [
   "Real vibes only. No toxic positivity here."
 ];
 
+type Page = 'landing' | 'mood' | 'results';
+
 function App() {
+  const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [currentMemeIndex, setCurrentMemeIndex] = useState(0);
   const [isDark, setIsDark] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -25,14 +30,44 @@ function App() {
   }, []);
 
   const handleStartJourney = () => {
-    // Navigate to /mood - for now just console log
-    console.log('Navigating to /mood');
-    alert('Welcome to your mood journey! 🌈');
+    setCurrentPage('mood');
+  };
+
+  const handleMoodSubmit = () => {
+    setCurrentPage('results');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentPage('landing');
+  };
+
+  const handleNewMoodCheck = () => {
+    setCurrentPage('mood');
   };
 
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
+
+  if (currentPage === 'mood') {
+    return (
+      <MoodCheck 
+        isDark={isDark}
+        onBack={handleBackToHome}
+        onSubmit={handleMoodSubmit}
+      />
+    );
+  }
+
+  if (currentPage === 'results') {
+    return (
+      <Results 
+        isDark={isDark}
+        onBack={handleBackToHome}
+        onNewMood={handleNewMoodCheck}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-all duration-1000 ${
