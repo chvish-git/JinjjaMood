@@ -89,10 +89,20 @@ export const useAuth = () => {
       const existingUser = await getDoc(userDocRef);
       
       if (existingUser.exists()) {
-        // Step 3: User exists - show error
-        return { success: false, error: 'Username already exists. Please try another.' };
+        // Step 2: User exists - log them in
+        const userData = existingUser.data();
+        setUserProfile({
+          username: userData.username,
+          name: userData.name,
+          createdAt: userData.createdAt.toDate()
+        });
+        
+        // Store username in localStorage for session tracking
+        localStorage.setItem('jinjjamood_username', trimmedUsername);
+        
+        return { success: true };
       } else {
-        // Step 2: User doesn't exist - create new user
+        // Step 3: User doesn't exist - create new user
         const newUserProfile = {
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
