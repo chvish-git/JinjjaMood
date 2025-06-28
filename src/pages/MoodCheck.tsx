@@ -19,21 +19,25 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
   const [journalEntry, setJournalEntry] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
   const handleSubmit = async () => {
+    // TC-MOOD-002: Missing mood value validation
     if (!selectedMood) {
-      alert('Please select a mood first! 💭');
+      setErrorMessage('Please select a mood.');
       return;
     }
 
     setIsSubmitting(true);
+    setErrorMessage('');
 
     try {
-      // Save to Firestore (with localStorage fallback)
+      // TC-MOOD-001: Log mood with journal (TC-MOOD-004: Journal is optional)
+      // TC-MOOD-005: Logs are tied to correct userId
       await saveMoodLog({
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
@@ -54,7 +58,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
       }, 1000);
     } catch (error) {
       console.error('Error saving mood log:', error);
-      alert('Failed to save mood log. Please try again.');
+      setErrorMessage('Failed to save mood log. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -112,13 +116,27 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
           </p>
         </div>
 
+        {/* Error Message */}
+        {errorMessage && (
+          <div className={`mb-6 p-4 rounded-xl border max-w-md mx-auto ${
+            isDark 
+              ? 'bg-red-900/20 border-red-500/30 text-red-300' 
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <p className="text-sm font-medium text-center">{errorMessage}</p>
+          </div>
+        )}
+
         {/* Mood Selector */}
         <div className={`mb-12 transform transition-all duration-1000 delay-300 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <MoodSelector 
             selectedMood={selectedMood}
-            onMoodSelect={setSelectedMood}
+            onMoodSelect={(mood) => {
+              setSelectedMood(mood);
+              setErrorMessage(''); // Clear error when mood is selected
+            }}
             isDark={isDark}
           />
         </div>

@@ -49,9 +49,15 @@ export const useAuth = () => {
     }
   };
 
-  const checkUsernameAndCreateOrLogin = async (usernameInput: string): Promise<{ success: boolean; error?: string }> => {
+  const checkUsernameAndCreateOrLogin = async (usernameInput: string, isSignup: boolean = false): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> => {
+    // TC-LOGIN-003: Empty username validation
     if (!usernameInput || usernameInput.trim().length === 0) {
-      return { success: false, error: 'Username cannot be empty' };
+      return { success: false, error: 'Please enter a valid username.' };
+    }
+
+    // TC-LOGIN-004: Whitespace-only username validation
+    if (usernameInput.trim() !== usernameInput || usernameInput.trim().length === 0) {
+      return { success: false, error: 'Please enter a valid username.' };
     }
 
     const trimmedUsername = usernameInput.trim().toLowerCase();
@@ -84,12 +90,17 @@ export const useAuth = () => {
       setError(null);
       setLoading(true);
 
-      // Step 1: Query Users where username == usernameInput
+      // Check if user exists
       const userDocRef = doc(db, 'users', trimmedUsername);
       const existingUser = await getDoc(userDocRef);
       
       if (existingUser.exists()) {
-        // Step 2: User exists - log them in
+        // TC-LOGIN-002: Handle duplicate username for signup
+        if (isSignup) {
+          return { success: false, error: 'Username already exists.' };
+        }
+        
+        // TC-LOGIN-005: Existing user logs in
         const userData = existingUser.data();
         setUserProfile({
           username: userData.username,
@@ -100,9 +111,9 @@ export const useAuth = () => {
         // Store username in localStorage for session tracking
         localStorage.setItem('jinjjamood_username', trimmedUsername);
         
-        return { success: true };
+        return { success: true, isNewUser: false };
       } else {
-        // Step 3: User doesn't exist - create new user
+        // TC-LOGIN-001: Create new user
         const newUserProfile = {
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
@@ -121,7 +132,7 @@ export const useAuth = () => {
         // Store username in localStorage for session tracking
         localStorage.setItem('jinjjamood_username', trimmedUsername);
         
-        return { success: true };
+        return { success: true, isNewUser: true };
       }
       
     } catch (err: any) {

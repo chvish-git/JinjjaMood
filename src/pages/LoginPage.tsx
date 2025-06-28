@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
+import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const LoginPage: React.FC = () => {
@@ -7,24 +7,33 @@ export const LoginPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSignupMode, setIsSignupMode] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const handleButtonClick = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
     setIsProcessing(true);
     
     try {
-      const result = await checkUsernameAndCreateOrLogin(usernameInput);
+      const result = await checkUsernameAndCreateOrLogin(usernameInput, isSignupMode);
       
-      if (!result.success && result.error) {
+      if (result.success) {
+        if (result.isNewUser) {
+          setSuccessMessage('Account created successfully! Welcome to JinjjaMood! 🎉');
+        } else {
+          setSuccessMessage('Welcome back! 👋');
+        }
+        // The useAuth hook will automatically update and redirect
+      } else if (result.error) {
         setErrorMessage(result.error);
       }
-      // If success, the useAuth hook will automatically update and redirect
     } catch (err: any) {
       console.error('Login error:', err);
       setErrorMessage(err.message || 'Something went wrong. Please try again.');
@@ -37,6 +46,7 @@ export const LoginPage: React.FC = () => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
     setUsernameInput(value);
     setErrorMessage(''); // Clear error when user starts typing
+    setSuccessMessage(''); // Clear success message when user starts typing
   };
 
   const isButtonDisabled = isProcessing || loading || usernameInput.length < 2;
@@ -83,11 +93,63 @@ export const LoginPage: React.FC = () => {
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to JinjjaMood</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              {isSignupMode ? 'Create Account' : 'Welcome Back'}
+            </h2>
             <p className="text-gray-600 text-sm">
-              No signup needed — just use a unique name
+              {isSignupMode 
+                ? 'Choose a unique username to get started' 
+                : 'Enter your username to continue'
+              }
             </p>
           </div>
+
+          {/* Mode Toggle */}
+          <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignupMode(false);
+                setErrorMessage('');
+                setSuccessMessage('');
+              }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
+                !isSignupMode 
+                  ? 'bg-white text-purple-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignupMode(true);
+                setErrorMessage('');
+                setSuccessMessage('');
+              }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
+                isSignupMode 
+                  ? 'bg-white text-purple-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 p-4 rounded-xl border bg-green-50 border-green-200 text-green-800">
+              <div className="flex items-start gap-2">
+                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Success!</p>
+                  <p>{successMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {errorMessage && (
@@ -103,7 +165,7 @@ export const LoginPage: React.FC = () => {
           )}
 
           {/* Username Form */}
-          <form onSubmit={handleButtonClick} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Username
@@ -141,12 +203,21 @@ export const LoginPage: React.FC = () => {
                 {isProcessing ? (
                   <>
                     <Loader className="animate-spin h-5 w-5" />
-                    Checking username...
+                    {isSignupMode ? 'Creating account...' : 'Logging in...'}
                   </>
                 ) : (
                   <>
-                    Login / Create Account
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
+                    {isSignupMode ? (
+                      <>
+                        <UserPlus size={18} />
+                        Create Account
+                      </>
+                    ) : (
+                      <>
+                        Login
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
+                      </>
+                    )}
                   </>
                 )}
               </span>
@@ -185,8 +256,10 @@ export const LoginPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Simple & Private</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your mood data is stored securely. Choose any unique username - 
-            if it's available, we'll create your account instantly.
+            Your mood data is stored securely. {isSignupMode 
+              ? 'Choose any unique username to create your account instantly.' 
+              : 'Enter your username to access your mood history.'
+            }
           </p>
         </div>
       </div>
