@@ -56,32 +56,77 @@ function App() {
 
   if (currentPage === 'mood') {
     return (
-      <MoodCheck 
-        isDark={isDark}
-        onBack={handleBackToHome}
-        onSubmit={handleMoodSubmit}
-      />
+      <>
+        <MoodCheck 
+          isDark={isDark}
+          onBack={handleBackToHome}
+          onSubmit={handleMoodSubmit}
+        />
+        {/* Bolt.new Badge */}
+        <a
+          href="https://bolt.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-3 right-3 z-50 transition-all duration-300 hover:scale-105 opacity-80 hover:opacity-100"
+        >
+          <img
+            src="/Copy of logotext_poweredby_360w.png"
+            alt="Built with Bolt"
+            className="w-24 h-auto cursor-pointer"
+          />
+        </a>
+      </>
     );
   }
 
   if (currentPage === 'results') {
     return (
-      <Results 
-        isDark={isDark}
-        onBack={handleBackToHome}
-        onNewMood={handleNewMoodCheck}
-        onViewHistory={handleViewHistory}
-      />
+      <>
+        <Results 
+          isDark={isDark}
+          onBack={handleBackToHome}
+          onNewMood={handleNewMoodCheck}
+          onViewHistory={handleViewHistory}
+        />
+        {/* Bolt.new Badge */}
+        <a
+          href="https://bolt.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-3 right-3 z-50 transition-all duration-300 hover:scale-105 opacity-80 hover:opacity-100"
+        >
+          <img
+            src="/Copy of logotext_poweredby_360w.png"
+            alt="Built with Bolt"
+            className="w-24 h-auto cursor-pointer"
+          />
+        </a>
+      </>
     );
   }
 
   if (currentPage === 'history') {
     return (
-      <MoodHistory 
-        isDark={isDark}
-        onBack={handleBackToHome}
-        onNewMood={handleNewMoodCheck}
-      />
+      <>
+        <MoodHistory 
+          isDark={isDark}
+          onBack={handleBackToHome}
+          onNewMood={handleNewMoodCheck}
+        />
+        {/* Bolt.new Badge */}
+        <a
+          href="https://bolt.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-3 right-3 z-50 transition-all duration-300 hover:scale-105 opacity-80 hover:opacity-100"
+        >
+          <img
+            src="/Copy of logotext_poweredby_360w.png"
+            alt="Built with Bolt"
+            className="w-24 h-auto cursor-pointer"
+          />
+        </a>
+      </>
     );
   }
 
@@ -203,6 +248,20 @@ function App() {
           ></div>
         ))}
       </div>
+
+      {/* Bolt.new Badge */}
+      <a
+        href="https://bolt.new"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-3 right-3 z-50 transition-all duration-300 hover:scale-105 opacity-80 hover:opacity-100"
+      >
+        <img
+          src="/Copy of logotext_poweredby_360w.png"
+          alt="Built with Bolt"
+          className="w-24 h-auto cursor-pointer"
+        />
+      </a>
     </div>
   );
 }
