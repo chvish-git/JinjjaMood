@@ -20,8 +20,14 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, username: string
       ...moodLog,
       id: docRef.id
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving mood log:', error);
+    
+    // Handle specific Firebase permission errors
+    if (error.code === 'permission-denied') {
+      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+    }
+    
     // Fallback to localStorage for offline functionality
     return saveMoodLogLocal(moodLog, username);
   }
@@ -54,8 +60,14 @@ export const getMoodLogs = async (username: string): Promise<MoodLog[]> => {
     });
     
     return logs;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching mood logs:', error);
+    
+    // Handle specific Firebase permission errors
+    if (error.code === 'permission-denied') {
+      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+    }
+    
     // Fallback to localStorage
     return getMoodLogsLocal(username);
   }
@@ -89,8 +101,14 @@ export const getLatestMoodLog = async (username: string): Promise<MoodLog | null
       journalEntry: data.journalEntry,
       timestamp: data.timestamp.toDate()
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
+    
+    // Handle specific Firebase permission errors
+    if (error.code === 'permission-denied') {
+      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+    }
+    
     return getLatestMoodLogLocal(username);
   }
 };

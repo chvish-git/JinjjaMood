@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Filter, Download, TrendingUp, BarChart3, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, Download, TrendingUp, BarChart3, Clock, BookOpen, AlertCircle } from 'lucide-react';
 import { getMoodLogs } from '../utils/storage';
 import { UserProfile } from '../components/UserProfile';
 import { MoodLog, MoodType } from '../types/mood';
@@ -21,15 +21,18 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
   const [moodFilter, setMoodFilter] = useState<MoodFilter>('all');
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadLogs = async () => {
       try {
+        setError(null);
         const logs = await getMoodLogs(username);
         const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setAllLogs(sortedLogs);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading mood logs:', error);
+        setError(error.message || 'Failed to load mood logs');
       } finally {
         setLoading(false);
         setIsVisible(true);
@@ -140,6 +143,52 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
           <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
             Loading your mood history...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDark 
+          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+      }`}>
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            Unable to Load Mood History
+          </h2>
+          <p className={`text-lg mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {error}
+          </p>
+          {error.includes('Firebase permission error') && (
+            <div className={`p-4 rounded-lg mb-6 ${isDark ? 'bg-yellow-900/30 border border-yellow-700' : 'bg-yellow-100 border border-yellow-300'}`}>
+              <p className={`text-sm ${isDark ? 'text-yellow-300' : 'text-yellow-800'}`}>
+                <strong>Firebase Setup Required:</strong> Please configure your Firestore security rules to allow access to the collections. 
+                Check the console for detailed instructions.
+              </p>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:scale-105 transition-transform duration-300"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={onBack}
+              className={`px-6 py-3 rounded-full transition-all duration-300 hover:scale-105 ${
+                isDark 
+                  ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
+                  : 'bg-black/10 text-gray-800 hover:bg-black/20 border border-gray-200'
+              }`}
+            >
+              Back to Home
+            </button>
+          </div>
         </div>
       </div>
     );
