@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Moon, Sun } from 'lucide-react';
 import { MoodCheck } from './pages/MoodCheck';
 import { Results } from './pages/Results';
+import { MoodHistory } from './pages/MoodHistory';
 
 const memeLines = [
   "Your vibe is valid. Even if it's unhinged.",
@@ -11,7 +12,7 @@ const memeLines = [
   "Real vibes only. No toxic positivity here."
 ];
 
-type Page = 'landing' | 'mood' | 'results';
+type Page = 'landing' | 'mood' | 'results' | 'history';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -45,6 +46,10 @@ function App() {
     setCurrentPage('mood');
   };
 
+  const handleViewHistory = () => {
+    setCurrentPage('history');
+  };
+
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
@@ -62,6 +67,17 @@ function App() {
   if (currentPage === 'results') {
     return (
       <Results 
+        isDark={isDark}
+        onBack={handleBackToHome}
+        onNewMood={handleNewMoodCheck}
+        onViewHistory={handleViewHistory}
+      />
+    );
+  }
+
+  if (currentPage === 'history') {
+    return (
+      <MoodHistory 
         isDark={isDark}
         onBack={handleBackToHome}
         onNewMood={handleNewMoodCheck}

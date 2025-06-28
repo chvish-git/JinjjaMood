@@ -9,9 +9,10 @@ interface ResultsProps {
   isDark: boolean;
   onBack: () => void;
   onNewMood: () => void;
+  onViewHistory: () => void;
 }
 
-export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood }) => {
+export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onViewHistory }) => {
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
@@ -246,6 +247,7 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood }) =
           </button>
 
           <button
+            onClick={onViewHistory}
             className={`px-6 py-3 text-base font-semibold rounded-full transition-all duration-300 transform hover:scale-105 ${
               isDark 
                 ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
