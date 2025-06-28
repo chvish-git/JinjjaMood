@@ -12,8 +12,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
   if (!userProfile) return null;
 
   const handleLogout = () => {
+    console.log('🔴 DEBUG: UserProfile handleLogout clicked');
+    console.log('🔴 DEBUG: Current userProfile before logout:', userProfile);
+    
     // Clear all user data and redirect to login
     logout();
+    
+    console.log('🔴 DEBUG: logout() function called');
     // The AuthGuard will automatically redirect to LoginPage when isAuthenticated becomes false
   };
 

@@ -156,10 +156,27 @@ export const useAuth = () => {
   };
 
   const logout = () => {
+    console.log('🟡 DEBUG: useAuth logout() function started');
+    console.log('🟡 DEBUG: Current userProfile before clearing:', userProfile);
+    console.log('🟡 DEBUG: Current localStorage before clearing:', localStorage.getItem('jinjjamood_username'));
+    
+    // Clear localStorage
     localStorage.removeItem('jinjjamood_username');
+    console.log('🟡 DEBUG: localStorage cleared, new value:', localStorage.getItem('jinjjamood_username'));
+    
+    // Clear user profile state
     setUserProfile(null);
+    console.log('🟡 DEBUG: setUserProfile(null) called');
+    
+    // Clear any errors
     setError(null);
+    console.log('🟡 DEBUG: setError(null) called');
+    
+    console.log('🟡 DEBUG: useAuth logout() function completed');
   };
+
+  const isAuthenticated = !!userProfile;
+  console.log('🔵 DEBUG: useAuth hook - isAuthenticated:', isAuthenticated, 'userProfile:', userProfile);
 
   return {
     userProfile,
@@ -167,6 +184,6 @@ export const useAuth = () => {
     error,
     checkUsernameAndCreateOrLogin,
     logout,
-    isAuthenticated: !!userProfile
+    isAuthenticated
   };
 };

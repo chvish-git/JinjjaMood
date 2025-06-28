@@ -9,7 +9,10 @@ interface AuthGuardProps {
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log('🟢 DEBUG: AuthGuard render - loading:', loading, 'isAuthenticated:', isAuthenticated);
+
   if (loading) {
+    console.log('🟢 DEBUG: AuthGuard showing loading screen');
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
@@ -21,8 +24,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    console.log('🟢 DEBUG: AuthGuard showing LoginPage (user not authenticated)');
     return <LoginPage />;
   }
 
+  console.log('🟢 DEBUG: AuthGuard showing authenticated content');
   return <>{children}</>;
 };
