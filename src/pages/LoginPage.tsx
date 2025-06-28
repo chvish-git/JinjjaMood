@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
         } else {
           setSuccessMessage('Welcome back! 👋');
         }
-        // The useAuth hook will automatically update and redirect
+        // The useAuth hook will automatically update and redirect to home
       } else if (result.error) {
         setErrorMessage(result.error);
       }
