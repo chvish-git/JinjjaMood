@@ -5,6 +5,7 @@ import { getPersonalizedQuote, getDailyTheme, getThemeEmoji } from '../data/vibe
 import { UserProfile } from '../components/UserProfile';
 import { MoodLog } from '../types/mood';
 import { VibeQuote } from '../types/vibeQuote';
+import { useAuth } from '../hooks/useAuth';
 
 interface ResultsProps {
   isDark: boolean;
@@ -15,6 +16,7 @@ interface ResultsProps {
 }
 
 export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onViewHistory, username }) => {
+  const { userProfile } = useAuth();
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
@@ -24,10 +26,15 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
 
   useEffect(() => {
     const loadData = async () => {
+      if (!userProfile?.uid) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const [latest, logs] = await Promise.all([
-          getLatestMoodLog(username),
-          getMoodLogs(username)
+          getLatestMoodLog(userProfile.uid),
+          getMoodLogs(userProfile.uid)
         ]);
         
         setLatestLog(latest);
@@ -48,7 +55,7 @@ export const Results: React.FC<ResultsProps> = ({ isDark, onBack, onNewMood, onV
     };
 
     loadData();
-  }, [username]);
+  }, [userProfile?.uid]);
 
   const getMoodEmoji = (mood: string) => {
     const emojiMap: { [key: string]: string } = {

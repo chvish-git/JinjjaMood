@@ -6,6 +6,7 @@ import { JournalInput } from '../components/JournalInput';
 import { UserProfile } from '../components/UserProfile';
 import { MoodType } from '../types/mood';
 import { saveMoodLog } from '../utils/storage';
+import { useAuth } from '../hooks/useAuth';
 
 interface MoodCheckProps {
   isDark: boolean;
@@ -15,6 +16,7 @@ interface MoodCheckProps {
 }
 
 export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, username }) => {
+  const { userProfile } = useAuth();
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -32,6 +34,11 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
       return;
     }
 
+    if (!userProfile?.uid) {
+      setErrorMessage('Authentication error. Please try logging in again.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -42,7 +49,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
         timestamp: new Date()
-      }, username);
+      }, userProfile.uid);
 
       // Trigger confetti
       confetti({

@@ -7,6 +7,7 @@ import { MoodDistributionChart } from '../components/charts/MoodDistributionChar
 import { WeeklyMoodChart } from '../components/charts/WeeklyMoodChart';
 import { generateMoodInsights, calculateMoodStats, MoodInsight } from '../utils/moodAnalysis';
 import { MoodLog, MoodType } from '../types/mood';
+import { useAuth } from '../hooks/useAuth';
 
 interface MoodHistoryProps {
   isDark: boolean;
@@ -20,6 +21,7 @@ type MoodFilter = 'all' | MoodType;
 type ChartView = 'trend' | 'distribution' | 'weekly';
 
 export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewMood, username }) => {
+  const { userProfile } = useAuth();
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<MoodLog[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>('30');
@@ -32,9 +34,14 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
 
   useEffect(() => {
     const loadLogs = async () => {
+      if (!userProfile?.uid) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setError(null);
-        const logs = await getMoodLogs(username);
+        const logs = await getMoodLogs(userProfile.uid);
         const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setAllLogs(sortedLogs);
         
@@ -51,7 +58,7 @@ export const MoodHistory: React.FC<MoodHistoryProps> = ({ isDark, onBack, onNewM
     };
 
     loadLogs();
-  }, [username]);
+  }, [userProfile?.uid]);
 
   useEffect(() => {
     let filtered = [...allLogs];

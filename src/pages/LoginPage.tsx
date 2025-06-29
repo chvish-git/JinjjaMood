@@ -193,7 +193,7 @@ export const LoginPage: React.FC = () => {
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <User size={12} className="text-blue-600" />
               </div>
-              <span>Instant access with unique username</span>
+              <span>Secure Firebase authentication</span>
             </div>
           </div>
         </div>
@@ -207,7 +207,7 @@ export const LoginPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Simple & Private</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your mood data is stored securely. Choose any unique username - 
+            Your mood data is stored securely with Firebase. Choose any unique username - 
             if it's available, we'll create your account instantly. If it exists, you'll be logged in.
           </p>
         </div>
