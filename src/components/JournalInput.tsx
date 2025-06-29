@@ -20,7 +20,8 @@ export const JournalInput: React.FC<JournalInputProps> = ({ value, onChange }) =
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Want to say more? (optional)"
+          placeholder="Want to add a note? (optional)"
+          maxLength={500}
           className={`
             w-full h-32 pl-12 pr-4 py-4 rounded-2xl resize-none transition-all duration-300 focus:scale-[1.02]
             ${isDark 

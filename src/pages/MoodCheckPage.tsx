@@ -8,11 +8,13 @@ import { JournalInput } from '../components/JournalInput';
 import { MoodType } from '../types/mood';
 import { saveMoodLog, checkDailyMoodLimit } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DAILY_MOOD_LIMIT = 5;
 
 export const MoodCheckPage: React.FC = () => {
   const { userProfile } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
@@ -22,7 +24,6 @@ export const MoodCheckPage: React.FC = () => {
   const [dailyCount, setDailyCount] = useState(0);
   const [hasReachedLimit, setHasReachedLimit] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
-  const [isDark] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -157,7 +158,7 @@ export const MoodCheckPage: React.FC = () => {
           <h1 className={`text-4xl md:text-6xl font-bold mb-4 ${
             isDark ? 'text-white' : 'text-gray-800'
           }`}>
-            {hasReachedLimit ? 'Vibe sensors need a break!' : 'What\'s your vibe today?'}
+            {hasReachedLimit ? 'Vibe sensors need a break!' : 'How are you feeling right now?'}
           </h1>
           
           <p className={`text-lg md:text-xl font-light ${
@@ -239,7 +240,6 @@ export const MoodCheckPage: React.FC = () => {
                 setSelectedMood(mood);
                 setErrorMessage('');
               }}
-              isDark={isDark}
             />
           </div>
         )}
@@ -252,7 +252,6 @@ export const MoodCheckPage: React.FC = () => {
             <JournalInput 
               value={journalEntry}
               onChange={setJournalEntry}
-              isDark={isDark}
             />
           </div>
         )}

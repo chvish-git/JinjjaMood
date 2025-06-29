@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const NotFoundPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const [isDark] = useState(false); // You can implement theme context later
+  const { isDark } = useTheme();
 
   useEffect(() => {
     setIsVisible(true);
@@ -41,13 +42,13 @@ export const NotFoundPage: React.FC = () => {
           <h1 className={`text-3xl md:text-4xl font-bold mb-4 ${
             isDark ? 'text-white' : 'text-gray-800'
           }`}>
-            Lost in your feelings?
+            You've wandered off the mood map
           </h1>
           
           <p className={`text-lg md:text-xl font-light max-w-md mx-auto ${
             isDark ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            This page doesn't exist. But your vibes are still valid.
+            Lost in your feelings? This page doesn't exist, but your vibes are still valid.
           </p>
         </div>
 
@@ -64,7 +65,7 @@ export const NotFoundPage: React.FC = () => {
             }`}
           >
             <Home size={20} />
-            <span>Back to Home</span>
+            <span>Go home</span>
             
             {/* Glow effect */}
             <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -36,6 +36,14 @@ export const LandingPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const handleEnterVibeZone = () => {
+    if (isAuthenticated) {
+      navigate('/mood');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className={`min-h-screen transition-all duration-1000 ${
       isDark 
@@ -53,6 +61,24 @@ export const LandingPage: React.FC = () => {
         <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-10 blur-3xl animate-pulse delay-2000 ${
           isDark ? 'bg-pink-500' : 'bg-purple-300'
         }`}></div>
+      </div>
+
+      {/* Floating emojis */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {['😊', '🌸', '✨', '💫', '🌙', '☁️', '🦋', '🌈'].map((emoji, i) => (
+          <div
+            key={i}
+            className="absolute text-2xl opacity-30 animate-bounce"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${3 + Math.random() * 2}s`
+            }}
+          >
+            {emoji}
+          </div>
+        ))}
       </div>
 
       {/* Theme toggle */}
@@ -105,8 +131,8 @@ export const LandingPage: React.FC = () => {
         <div className={`transform transition-all duration-1000 delay-500 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <Link
-            to="/login"
+          <button
+            onClick={handleEnterVibeZone}
             className={`group relative inline-block px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
               isDark 
                 ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
@@ -114,7 +140,8 @@ export const LandingPage: React.FC = () => {
             }`}
           >
             <span className="flex items-center gap-2">
-              Let's check your vibe
+              <Sparkles size={20} className="group-hover:rotate-12 transition-transform duration-300" />
+              Enter your vibe zone
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
             </span>
             
@@ -124,7 +151,7 @@ export const LandingPage: React.FC = () => {
                 ? 'bg-gradient-to-r from-pink-500 to-purple-600 blur-xl' 
                 : 'bg-gradient-to-r from-purple-600 to-pink-600 blur-xl'
             }`}></div>
-          </Link>
+          </button>
         </div>
 
         {/* Footer */}
@@ -135,24 +162,6 @@ export const LandingPage: React.FC = () => {
             Made with too many feelings + Bolt.new
           </p>
         </div>
-      </div>
-
-      {/* Floating particles effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className={`absolute w-2 h-2 rounded-full opacity-30 animate-bounce ${
-              isDark ? 'bg-white' : 'bg-purple-400'
-            }`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${3 + Math.random() * 2}s`
-            }}
-          ></div>
-        ))}
       </div>
     </div>
   );
