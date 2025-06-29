@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3 } from 'lucide-react';
+import { Edit3, Sparkles } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface JournalInputProps {
@@ -12,8 +12,10 @@ export const JournalInput: React.FC<JournalInputProps> = ({ value, onChange }) =
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="relative">
-        <div className={`absolute top-4 left-4 transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+      <div className="relative group">
+        <div className={`absolute top-4 left-4 transition-all duration-300 group-focus-within:scale-110 group-focus-within:text-purple-400 ${
+          isDark ? 'text-gray-400' : 'text-gray-500'
+        }`}>
           <Edit3 size={20} />
         </div>
         
@@ -23,23 +25,40 @@ export const JournalInput: React.FC<JournalInputProps> = ({ value, onChange }) =
           placeholder="Want to add a note? (optional)"
           maxLength={500}
           className={`
-            w-full h-32 pl-12 pr-4 py-4 rounded-2xl resize-none transition-all duration-300 focus:scale-[1.02]
+            input-enhanced w-full h-32 pl-12 pr-16 py-4 rounded-2xl resize-none
+            text-body placeholder:text-caption
+            focus:ring-4 focus:ring-purple-400/20
             ${isDark 
-              ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40 focus:shadow-lg focus:shadow-purple-500/20' 
-              : 'bg-white/80 text-gray-800 placeholder-gray-500 border-gray-200 focus:border-purple-300 focus:shadow-lg focus:shadow-purple-500/20'
+              ? 'placeholder-gray-400' 
+              : 'placeholder-gray-500'
             }
-            backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-400/50
-            text-sm md:text-base leading-relaxed
           `}
         />
 
-        {/* Character count */}
-        <div className={`absolute bottom-2 right-2 text-xs ${
-          isDark ? 'text-gray-500' : 'text-gray-400'
+        {/* Character count with enhanced styling */}
+        <div className={`absolute bottom-3 right-3 flex items-center gap-2 text-caption transition-all duration-300 ${
+          value.length > 450 ? 'text-orange-500' : isDark ? 'text-gray-500' : 'text-gray-400'
         }`}>
-          {value.length}/500
+          {value.length > 0 && (
+            <Sparkles size={12} className="animate-sparkle" />
+          )}
+          <span className="font-medium">
+            {value.length}/500
+          </span>
         </div>
+
+        {/* Enhanced focus ring */}
+        <div className="absolute inset-0 rounded-2xl pointer-events-none transition-all duration-300 group-focus-within:ring-4 group-focus-within:ring-purple-400/20"></div>
       </div>
+
+      {/* Writing tips */}
+      {value.length === 0 && (
+        <div className={`mt-3 text-center transition-all duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <p className="text-caption">
+            💭 Share what's on your mind, or just vibe in silence
+          </p>
+        </div>
+      )}
     </div>
   );
 };
