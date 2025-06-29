@@ -15,17 +15,55 @@ export const checkDailyMoodLimit = async (uid: string): Promise<boolean> => {
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
 
+    // Use a simpler query that doesn't require a complex index
     const q = query(
       collection(db, COLLECTION_NAME),
       where('uid', '==', uid),
-      where('timestamp', '>=', Timestamp.fromDate(startOfToday)),
-      where('timestamp', '<=', Timestamp.fromDate(endOfToday))
+      orderBy('timestamp', 'desc'),
+      limit(50) // Get recent logs and filter client-side
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.size > 0; // Returns true if user already logged mood today
+    
+    // Filter client-side for today's entries
+    const todayLogs = querySnapshot.docs.filter(doc => {
+      const data = doc.data();
+      const logDate = data.timestamp.toDate();
+      return logDate >= startOfToday && logDate <= endOfToday;
+    });
+    
+    return todayLogs.length > 0; // Returns true if user already logged mood today
   } catch (error: any) {
     console.error('Error checking daily mood limit:', error);
+    
+    // If we get an index error, try a simpler approach
+    if (error.message?.includes('index')) {
+      console.log('Index not available, using fallback method...');
+      try {
+        // Fallback: get all user logs and filter client-side
+        const simpleQuery = query(
+          collection(db, COLLECTION_NAME),
+          where('uid', '==', uid)
+        );
+        const snapshot = await getDocs(simpleQuery);
+        
+        const today = new Date();
+        const startOfToday = startOfDay(today);
+        const endOfToday = endOfDay(today);
+        
+        const todayLogs = snapshot.docs.filter(doc => {
+          const data = doc.data();
+          const logDate = data.timestamp.toDate();
+          return logDate >= startOfToday && logDate <= endOfToday;
+        });
+        
+        return todayLogs.length > 0;
+      } catch (fallbackError) {
+        console.error('Fallback method also failed:', fallbackError);
+        return checkDailyMoodLimitLocal(uid);
+      }
+    }
+    
     // Fallback to localStorage check
     return checkDailyMoodLimitLocal(uid);
   }
@@ -83,10 +121,10 @@ export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
   }
 
   try {
+    // Use a simple query first
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('uid', '==', uid),
-      orderBy('timestamp', 'desc')
+      where('uid', '==', uid)
     );
     
     const querySnapshot = await getDocs(q);
@@ -101,6 +139,9 @@ export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
         timestamp: data.timestamp.toDate()
       });
     });
+    
+    // Sort client-side
+    logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     
     return logs;
   } catch (error: any) {
@@ -122,28 +163,15 @@ export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => 
   }
 
   try {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('uid', '==', uid),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
+    // Get all logs and find the latest client-side to avoid index issues
+    const logs = await getMoodLogs(uid);
     
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
+    if (logs.length === 0) {
       return null;
     }
     
-    const doc = querySnapshot.docs[0];
-    const data = doc.data();
-    
-    return {
-      id: doc.id,
-      mood: data.mood,
-      journalEntry: data.journalEntry,
-      timestamp: data.timestamp.toDate()
-    };
+    // Return the first one (already sorted by timestamp desc)
+    return logs[0];
   } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
     
