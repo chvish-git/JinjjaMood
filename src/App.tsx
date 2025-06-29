@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MoodCheckPage } from './pages/MoodCheckPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { MoodHistoryPage } from './pages/MoodHistoryPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -37,6 +38,11 @@ function App() {
             <Route path="/history" element={
               <ProtectedRoute>
                 <MoodHistoryPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <AnalyticsPage />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
