@@ -211,7 +211,7 @@ export const MoodHistoryPage: React.FC = () => {
           </h1>
           
           <p className={`text-lg md:text-xl font-light ${
-            isDark ? 'text-gray-400' : 'text-gray-600'
+            isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
             See how your vibe has shifted over time
           </p>
@@ -261,22 +261,22 @@ export const MoodHistoryPage: React.FC = () => {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Enhanced Filters with better contrast */}
         <div className={`max-w-6xl mx-auto mb-8 transform transition-all duration-1000 delay-300 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <Calendar size={18} className={isDark ? 'text-gray-400' : 'text-gray-600'} />
+                <Calendar size={18} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value as DateRange)}
-                  className={`px-3 py-2 rounded-lg border transition-all duration-300 ${
+                  className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 font-semibold ${
                     isDark 
-                      ? 'bg-white/10 text-white border-white/20 focus:border-white/40' 
-                      : 'bg-white/80 text-gray-800 border-gray-200 focus:border-purple-300'
-                  }`}
+                      ? 'bg-slate-800 text-gray-100 border-slate-600 focus:border-purple-400' 
+                      : 'bg-white text-gray-800 border-gray-300 focus:border-purple-500'
+                  } focus:outline-none focus:ring-2 focus:ring-purple-400/20`}
                 >
                   <option value="7">Last 7 days</option>
                   <option value="14">Last 14 days</option>
@@ -286,15 +286,15 @@ export const MoodHistoryPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <Filter size={18} className={isDark ? 'text-gray-400' : 'text-gray-600'} />
+                <Filter size={18} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
                 <select
                   value={moodFilter}
                   onChange={(e) => setMoodFilter(e.target.value as MoodFilter)}
-                  className={`px-3 py-2 rounded-lg border transition-all duration-300 ${
+                  className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 font-semibold ${
                     isDark 
-                      ? 'bg-white/10 text-white border-white/20 focus:border-white/40' 
-                      : 'bg-white/80 text-gray-800 border-gray-200 focus:border-purple-300'
-                  }`}
+                      ? 'bg-slate-800 text-gray-100 border-slate-600 focus:border-purple-400' 
+                      : 'bg-white text-gray-800 border-gray-300 focus:border-purple-500'
+                  } focus:outline-none focus:ring-2 focus:ring-purple-400/20`}
                 >
                   <option value="all">All moods</option>
                   <option value="joyful">😊 Joyful</option>
@@ -313,8 +313,10 @@ export const MoodHistoryPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Chart View Toggle */}
-              <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10">
+              {/* Enhanced Chart View Toggle with better contrast */}
+              <div className={`flex items-center gap-1 p-1 rounded-lg border-2 ${
+                isDark ? 'bg-slate-800 border-slate-600' : 'bg-white border-gray-300'
+              }`}>
                 {[
                   { key: 'trend', label: 'Trend', icon: TrendingUp },
                   { key: 'distribution', label: 'Distribution', icon: BarChart3 },
@@ -323,14 +325,14 @@ export const MoodHistoryPage: React.FC = () => {
                   <button
                     key={key}
                     onClick={() => setChartView(key as ChartView)}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium transition-all duration-300 ${
+                    className={`flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold transition-all duration-300 ${
                       chartView === key
                         ? isDark 
-                          ? 'bg-white/20 text-white' 
-                          : 'bg-white text-gray-800 shadow-sm'
+                          ? 'bg-purple-600 text-white shadow-sm' 
+                          : 'bg-purple-500 text-white shadow-sm'
                         : isDark 
-                          ? 'text-gray-400 hover:text-white' 
-                          : 'text-gray-600 hover:text-gray-800'
+                          ? 'text-gray-300 hover:text-white hover:bg-slate-700' 
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                     }`}
                   >
                     <Icon size={14} />
@@ -341,14 +343,14 @@ export const MoodHistoryPage: React.FC = () => {
 
               <button
                 onClick={exportMoodData}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 border-2 font-semibold ${
                   isDark 
-                    ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
-                    : 'bg-black/10 text-gray-800 hover:bg-black/20 border border-gray-200'
+                    ? 'bg-slate-800 text-gray-100 hover:bg-slate-700 border-slate-600 hover:border-slate-500' 
+                    : 'bg-white text-gray-800 hover:bg-gray-50 border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <Download size={16} />
-                <span className="text-sm font-medium hidden sm:inline">Export</span>
+                <span className="text-sm font-bold hidden sm:inline">Export</span>
               </button>
             </div>
           </div>

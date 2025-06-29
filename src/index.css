@@ -15,19 +15,19 @@
   --negative-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   --bonus-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.3);
   --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --text-muted: #999999;
+  --text-secondary: #4a4a4a;
+  --text-muted: #6b7280;
 }
 
 .dark {
-  --glass-bg: rgba(0, 0, 0, 0.2);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.2);
   --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --text-muted: #888888;
+  --text-secondary: #e5e7eb;
+  --text-muted: #9ca3af;
 }
 
 /* Enhanced animations */
@@ -128,7 +128,7 @@
   animation: gentleWave 4s ease-in-out infinite;
 }
 
-/* Enhanced glass morphism */
+/* Enhanced glass morphism with better contrast */
 .glass {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -137,32 +137,34 @@
 }
 
 .glass-strong {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .dark .glass-strong {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Enhanced button styles */
 .btn-primary {
   background: var(--primary-gradient);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   padding: 12px 24px;
   border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
   box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+  border: 2px solid transparent;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .btn-mood {
@@ -195,17 +197,17 @@
 /* Enhanced text styles with better contrast */
 .text-primary {
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .text-secondary {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .text-muted {
   color: var(--text-muted);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .text-gradient {
@@ -237,32 +239,32 @@
   color: white;
 }
 
-/* Enhanced form inputs */
+/* Enhanced form inputs with better contrast */
 .input-enhanced {
   background: var(--glass-bg);
   backdrop-filter: blur(10px);
   border: 2px solid var(--glass-border);
   color: var(--text-primary);
   transition: all 0.3s ease;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .input-enhanced:focus {
-  border-color: rgba(168, 85, 247, 0.5);
+  border-color: rgba(168, 85, 247, 0.6);
   box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
   transform: scale(1.02);
 }
 
 .input-enhanced::placeholder {
   color: var(--text-muted);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 /* Enhanced card styles */
 .card-enhanced {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--glass-border);
   border-radius: 20px;
   padding: 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -272,7 +274,31 @@
 .card-enhanced:hover {
   transform: translateY(-4px);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
-  border-color: rgba(168, 85, 247, 0.3);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* Enhanced dropdown styles with better contrast */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+/* Dark mode select options */
+.dark select option {
+  background-color: #1f2937;
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #1f2937;
+  font-weight: 600;
+  padding: 8px 12px;
 }
 
 /* Mood feedback overlays */
@@ -391,15 +417,19 @@
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .btn-primary {
-    border: 2px solid currentColor;
+    border: 3px solid currentColor;
   }
   
   .glass {
-    border-width: 2px;
+    border-width: 3px;
   }
   
   .text-primary {
-    font-weight: 700;
+    font-weight: 900;
+  }
+  
+  select {
+    border-width: 3px;
   }
 }
 
@@ -432,12 +462,12 @@
 
 .text-body {
   font-size: clamp(1rem, 2vw, 1.125rem);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.6;
 }
 
 .text-caption {
   font-size: clamp(0.875rem, 1.5vw, 1rem);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
 }

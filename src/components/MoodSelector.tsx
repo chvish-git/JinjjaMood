@@ -24,50 +24,58 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      {/* Horizontal Category Tabs */}
+      {/* Enhanced Category Tabs with better contrast */}
       <div className="flex justify-center mb-8">
-        <div className="glass-strong rounded-2xl p-2 w-full max-w-2xl">
+        <div className={`rounded-2xl p-2 w-full max-w-2xl border-2 ${
+          isDark 
+            ? 'bg-slate-800/90 border-slate-600 backdrop-blur-sm' 
+            : 'bg-white/95 border-gray-300 backdrop-blur-sm shadow-lg'
+        }`}>
           <div className="grid grid-cols-4 gap-2">
             {categories.map(({ key, label, emoji, color }) => (
               <button
                 key={key}
                 onClick={() => setActiveCategory(key)}
-                className={`flex flex-col items-center gap-2 px-4 py-4 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 focus-enhanced ${
+                className={`flex flex-col items-center gap-2 px-4 py-4 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 focus-enhanced border-2 ${
                   activeCategory === key
-                    ? `${color} text-white shadow-lg transform scale-105` 
+                    ? isDark
+                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white border-purple-400 shadow-lg transform scale-105'
+                      : 'bg-gradient-to-br from-purple-500 to-pink-500 text-white border-purple-300 shadow-lg transform scale-105'
                     : isDark 
-                      ? 'text-gray-300 hover:text-white hover:bg-white/10' 
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                      ? 'text-gray-200 hover:text-white hover:bg-slate-700/80 border-slate-600 hover:border-slate-500' 
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <span className="text-2xl">{emoji}</span>
-                <span className="font-medium text-xs leading-tight">{label}</span>
+                <span className="font-bold text-xs leading-tight">{label}</span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Category Description */}
-      <div className={`text-center mb-6 transition-all duration-500 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-        <p className="text-body animate-fadeInUp">
+      {/* Enhanced Category Description with better contrast */}
+      <div className={`text-center mb-6 transition-all duration-500 ${
+        isDark ? 'text-gray-100' : 'text-gray-800'
+      }`}>
+        <p className="text-lg font-semibold animate-fadeInUp">
           {activeCategory_info?.description}
         </p>
       </div>
 
-      {/* Mood Grid */}
+      {/* Enhanced Mood Grid with better contrast */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {currentMoods.map(({ mood, emoji, color, darkColor, description }) => (
           <button
             key={mood}
             onClick={() => onMoodSelect(mood)}
             className={`
-              btn-mood card-enhanced relative group focus-enhanced
+              btn-mood relative group focus-enhanced p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl border-2
               ${selectedMood === mood 
-                ? `bg-gradient-to-br ${isDark ? darkColor : color} text-white shadow-2xl scale-105 ring-4 ring-white/30` 
+                ? `bg-gradient-to-br ${isDark ? darkColor : color} text-white shadow-2xl scale-105 border-white/50` 
                 : isDark 
-                  ? 'hover:bg-white/20' 
-                  : 'hover:bg-white/90'
+                  ? 'bg-slate-800/80 text-gray-100 hover:bg-slate-700/90 border-slate-600 hover:border-slate-500 backdrop-blur-sm' 
+                  : 'bg-white/90 text-gray-800 hover:bg-white border-gray-200 hover:border-gray-300 shadow-md hover:shadow-lg backdrop-blur-sm'
               }
             `}
             title={description}
@@ -76,8 +84,12 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
               <div className="text-3xl mb-3 group-hover:scale-125 transition-transform duration-300 animate-gentle-wave">
                 {emoji}
               </div>
-              <div className={`font-semibold text-sm capitalize leading-tight ${
-                selectedMood === mood ? 'text-white' : 'text-primary'
+              <div className={`font-bold text-sm capitalize leading-tight ${
+                selectedMood === mood 
+                  ? 'text-white' 
+                  : isDark 
+                    ? 'text-gray-100' 
+                    : 'text-gray-800'
               }`}>
                 {mood.replace(/([a-z])([A-Z])/g, '$1 $2')}
               </div>
@@ -96,12 +108,16 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
         ))}
       </div>
 
-      {/* Enhanced visual feedback */}
+      {/* Enhanced visual feedback with better contrast */}
       <div className="mt-8 text-center">
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full glass transition-all duration-300 ${
+        <div className={`inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 transition-all duration-300 ${
           selectedMood ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        } ${
+          isDark 
+            ? 'bg-slate-800/90 border-slate-600 text-gray-100 backdrop-blur-sm' 
+            : 'bg-white/95 border-gray-300 text-gray-800 backdrop-blur-sm shadow-lg'
         }`}>
-          <span className="text-sm font-medium text-secondary">
+          <span className="text-sm font-bold">
             {selectedMood ? `Selected: ${selectedMood}` : 'Choose your vibe'}
           </span>
           {selectedMood && (
