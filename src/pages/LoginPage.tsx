@@ -181,25 +181,25 @@ export const LoginPage: React.FC = () => {
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">
-        {/* Header */}
+        {/* Perfect Header */}
         <div className={`text-center mb-8 transform transition-all duration-1000 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <h1 className={`text-6xl md:text-8xl font-bold mb-4 bg-gradient-to-r ${
-            isDark 
-              ? 'from-pink-400 via-purple-400 to-blue-400' 
-              : 'from-pink-600 via-purple-600 to-blue-600'
-          } bg-clip-text text-transparent animate-pulse`}>
+          <h1 className={`
+            font-black mb-6 bg-gradient-to-r text-gradient animate-pulse tracking-tight leading-none
+            text-5xl sm:text-6xl md:text-7xl lg:text-8xl
+            drop-shadow-2xl
+          `}>
             JinjjaMood
           </h1>
           
-          <p className={`text-sm md:text-base font-light tracking-wider mb-2 ${
+          <p className={`text-lg md:text-xl font-light tracking-wider mb-2 ${
             isDark ? 'text-gray-400' : 'text-gray-600'
           }`}>
             jinjja → real/really
           </p>
           
-          <p className={`text-lg md:text-xl font-medium max-w-2xl mx-auto ${
+          <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto ${
             isDark ? 'text-white' : 'text-gray-800'
           }`}>
             Your name. Your vibe. That's all we need.

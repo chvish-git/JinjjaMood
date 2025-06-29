@@ -101,34 +101,34 @@ export const LandingPage: React.FC = () => {
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">
-        {/* MASSIVE Enhanced Header */}
+        {/* PERFECT Enhanced Header */}
         <div className={`text-center mb-16 transform transition-all duration-1000 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <div className="relative mb-8">
-            {/* HUGE JinjjaMood title */}
+            {/* PERFECT JinjjaMood title - just right size */}
             <h1 className={`
               font-black mb-8 text-gradient animate-fadeInUp tracking-tight leading-none
-              text-8xl sm:text-9xl md:text-[12rem] lg:text-[14rem] xl:text-[16rem]
+              text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem]
               drop-shadow-2xl
             `}>
               JinjjaMood
             </h1>
             
             {/* Enhanced decorative elements */}
-            <div className="absolute -top-8 -right-8 md:-top-12 md:-right-12">
-              <Star className="text-yellow-400 animate-sparkle" size={48} />
+            <div className="absolute -top-6 -right-6 md:-top-8 md:-right-8">
+              <Star className="text-yellow-400 animate-sparkle" size={36} />
             </div>
-            <div className="absolute -bottom-4 -left-8 md:-bottom-6 md:-left-12">
-              <Heart className="text-pink-400 animate-gentle-wave" size={36} />
+            <div className="absolute -bottom-3 -left-6 md:-bottom-4 md:-left-8">
+              <Heart className="text-pink-400 animate-gentle-wave" size={28} />
             </div>
-            <div className="absolute top-1/2 -right-4 md:-right-8">
-              <Sparkles className="text-purple-400 animate-pulse" size={32} />
+            <div className="absolute top-1/2 -right-3 md:-right-6">
+              <Sparkles className="text-purple-400 animate-pulse" size={24} />
             </div>
           </div>
           
           {/* Subtitle with better spacing */}
-          <p className={`text-xl md:text-2xl font-light tracking-wider mb-4 ${
+          <p className={`text-lg md:text-xl font-light tracking-wider mb-4 ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
             jinjja → real/really

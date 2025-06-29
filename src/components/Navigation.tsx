@@ -36,10 +36,10 @@ export const Navigation: React.FC = () => {
     } backdrop-blur-sm border-b`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Perfect Logo Size */}
           <Link 
             to="/mood" 
-            className={`text-xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300`}
+            className={`text-2xl md:text-3xl font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300 tracking-tight`}
           >
             JinjjaMood
           </Link>
