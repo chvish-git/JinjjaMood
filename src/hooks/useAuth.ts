@@ -1,38 +1,51 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { getAuth, signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { db, auth } from '../config/firebase';
 
 interface UserProfile {
+  uid: string;
   username: string;
   name: string;
   createdAt: Date;
 }
 
 export const useAuth = () => {
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in (stored in localStorage)
-    const storedUsername = localStorage.getItem('jinjjamood_username');
-    if (storedUsername) {
-      // Load user profile from Firestore
-      loadUserProfile(storedUsername);
-    } else {
-      setLoading(false);
-    }
+    console.log('🔵 DEBUG: Setting up Firebase Auth listener');
+    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔵 DEBUG: Auth state changed, user:', user?.uid || 'null');
+      setFirebaseUser(user);
+      
+      if (user) {
+        // User is signed in, load their profile
+        await loadUserProfile(user.uid);
+      } else {
+        // User is signed out
+        setUserProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const loadUserProfile = async (username: string) => {
+  const loadUserProfile = async (uid: string) => {
     try {
-      console.log('🔵 DEBUG: Loading user profile for username:', username);
-      const userDocRef = doc(db, 'users', username);
+      console.log('🔵 DEBUG: Loading user profile for uid:', uid);
+      const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
         setUserProfile({
+          uid: uid,
           username: data.username,
           name: data.name,
           createdAt: data.createdAt.toDate()
@@ -40,8 +53,6 @@ export const useAuth = () => {
         console.log('✅ DEBUG: User profile loaded successfully');
       } else {
         console.log('⚠️ DEBUG: User document does not exist in Firestore');
-        // User doesn't exist in Firestore, clear localStorage
-        localStorage.removeItem('jinjjamood_username');
         setUserProfile(null);
       }
     } catch (err: any) {
@@ -102,7 +113,7 @@ service cloud.firestore {
   };
 
   const checkUsernameAndCreateOrLogin = async (usernameInput: string): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> => {
-    // TC-LOGIN-003 & TC-LOGIN-004: Empty and whitespace validation
+    // Validation
     if (!usernameInput || usernameInput.trim().length === 0) {
       return { success: false, error: 'Please enter a valid username.' };
     }
@@ -137,29 +148,32 @@ service cloud.firestore {
       setError(null);
       setLoading(true);
       
-      console.log('🔵 DEBUG: Checking username:', trimmedUsername);
+      console.log('🔵 DEBUG: Starting authentication process for username:', trimmedUsername);
 
-      // Check if user exists in database
-      const userDocRef = doc(db, 'users', trimmedUsername);
+      // Step 1: Sign in anonymously with Firebase Auth
+      const userCredential = await signInAnonymously(auth);
+      const user = userCredential.user;
+      console.log('✅ DEBUG: Firebase Auth successful, uid:', user.uid);
+
+      // Step 2: Check if user profile exists in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
       const existingUser = await getDoc(userDocRef);
       
       if (existingUser.exists()) {
-        // TC-LOGIN-005: Existing user logs in
-        console.log('✅ DEBUG: Existing user found');
+        // User profile exists - this is a returning user
+        console.log('✅ DEBUG: Existing user profile found');
         const userData = existingUser.data();
         setUserProfile({
+          uid: user.uid,
           username: userData.username,
           name: userData.name,
           createdAt: userData.createdAt.toDate()
         });
         
-        // Store username in localStorage for session tracking
-        localStorage.setItem('jinjjamood_username', trimmedUsername);
-        
         return { success: true, isNewUser: false };
       } else {
-        // TC-LOGIN-001: Create new user with unique username
-        console.log('🔵 DEBUG: Creating new user');
+        // Step 3: Create new user profile
+        console.log('🔵 DEBUG: Creating new user profile');
         const newUserProfile = {
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
@@ -167,23 +181,21 @@ service cloud.firestore {
         };
         
         await setDoc(userDocRef, newUserProfile);
-        console.log('✅ DEBUG: New user created successfully');
+        console.log('✅ DEBUG: New user profile created successfully');
         
         // Set user profile
         setUserProfile({
+          uid: user.uid,
           username: trimmedUsername,
           name: trimmedUsername,
           createdAt: new Date()
         });
         
-        // Store username in localStorage for session tracking
-        localStorage.setItem('jinjjamood_username', trimmedUsername);
-        
         return { success: true, isNewUser: true };
       }
       
     } catch (err: any) {
-      console.error('❌ DEBUG: Username check error:', err);
+      console.error('❌ DEBUG: Authentication error:', err);
       console.error('❌ DEBUG: Error code:', err.code);
       console.error('❌ DEBUG: Error message:', err.message);
       
@@ -221,28 +233,33 @@ See the browser console for detailed instructions.
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     console.log('🟡 DEBUG: useAuth logout() function started');
     console.log('🟡 DEBUG: Current userProfile before clearing:', userProfile);
-    console.log('🟡 DEBUG: Current localStorage before clearing:', localStorage.getItem('jinjjamood_username'));
+    console.log('🟡 DEBUG: Current firebaseUser before clearing:', firebaseUser?.uid);
     
-    // Clear localStorage
-    localStorage.removeItem('jinjjamood_username');
-    console.log('🟡 DEBUG: localStorage cleared, new value:', localStorage.getItem('jinjjamood_username'));
-    
-    // Clear user profile state
-    setUserProfile(null);
-    console.log('🟡 DEBUG: setUserProfile(null) called');
-    
-    // Clear any errors
-    setError(null);
-    console.log('🟡 DEBUG: setError(null) called');
-    
-    console.log('🟡 DEBUG: useAuth logout() function completed');
+    try {
+      // Sign out from Firebase Auth
+      await signOut(auth);
+      console.log('✅ DEBUG: Firebase signOut successful');
+      
+      // Clear user profile state (Firebase auth listener will handle firebaseUser)
+      setUserProfile(null);
+      console.log('🟡 DEBUG: setUserProfile(null) called');
+      
+      // Clear any errors
+      setError(null);
+      console.log('🟡 DEBUG: setError(null) called');
+      
+      console.log('🟡 DEBUG: useAuth logout() function completed');
+    } catch (error) {
+      console.error('❌ DEBUG: Error during logout:', error);
+      setError('Failed to sign out. Please try again.');
+    }
   };
 
-  const isAuthenticated = !!userProfile;
-  console.log('🔵 DEBUG: useAuth hook - isAuthenticated:', isAuthenticated, 'userProfile:', userProfile);
+  const isAuthenticated = !!firebaseUser && !!userProfile;
+  console.log('🔵 DEBUG: useAuth hook - isAuthenticated:', isAuthenticated, 'firebaseUser:', !!firebaseUser, 'userProfile:', !!userProfile);
 
   return {
     userProfile,

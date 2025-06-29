@@ -4,15 +4,15 @@ import { db } from '../config/firebase';
 
 const COLLECTION_NAME = 'moodLogs';
 
-export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, username: string): Promise<MoodLog> => {
-  if (!username) {
-    throw new Error('Username is required to save mood logs');
+export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, uid: string): Promise<MoodLog> => {
+  if (!uid) {
+    throw new Error('User ID is required to save mood logs');
   }
 
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...moodLog,
-      username: username,
+      uid: uid,
       timestamp: serverTimestamp()
     });
 
@@ -29,20 +29,20 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, username: string
     }
     
     // Fallback to localStorage for offline functionality
-    return saveMoodLogLocal(moodLog, username);
+    return saveMoodLogLocal(moodLog, uid);
   }
 };
 
-export const getMoodLogs = async (username: string): Promise<MoodLog[]> => {
-  if (!username) {
-    // Return local storage data if no username
-    return getMoodLogsLocal(username);
+export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
+  if (!uid) {
+    // Return local storage data if no uid
+    return getMoodLogsLocal(uid);
   }
 
   try {
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('username', '==', username),
+      where('uid', '==', uid),
       orderBy('timestamp', 'desc')
     );
     
@@ -69,19 +69,19 @@ export const getMoodLogs = async (username: string): Promise<MoodLog[]> => {
     }
     
     // Fallback to localStorage
-    return getMoodLogsLocal(username);
+    return getMoodLogsLocal(uid);
   }
 };
 
-export const getLatestMoodLog = async (username: string): Promise<MoodLog | null> => {
-  if (!username) {
-    return getLatestMoodLogLocal(username);
+export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => {
+  if (!uid) {
+    return getLatestMoodLogLocal(uid);
   }
 
   try {
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('username', '==', username),
+      where('uid', '==', uid),
       orderBy('timestamp', 'desc'),
       limit(1)
     );
@@ -109,28 +109,28 @@ export const getLatestMoodLog = async (username: string): Promise<MoodLog | null
       throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
     }
     
-    return getLatestMoodLogLocal(username);
+    return getLatestMoodLogLocal(uid);
   }
 };
 
 // Fallback localStorage functions for offline functionality
 const STORAGE_KEY = 'jinjjamood_logs';
 
-const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id'>, username: string): MoodLog => {
-  const logs = getMoodLogsLocal(username);
+const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id'>, uid: string): MoodLog => {
+  const logs = getMoodLogsLocal(uid);
   const newLog: MoodLog = {
     ...moodLog,
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
   };
   
   logs.push(newLog);
-  localStorage.setItem(`${STORAGE_KEY}_${username}`, JSON.stringify(logs));
+  localStorage.setItem(`${STORAGE_KEY}_${uid}`, JSON.stringify(logs));
   return newLog;
 };
 
-const getMoodLogsLocal = (username: string): MoodLog[] => {
+const getMoodLogsLocal = (uid: string): MoodLog[] => {
   try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${username}`);
+    const stored = localStorage.getItem(`${STORAGE_KEY}_${uid}`);
     if (!stored) return [];
     
     const logs = JSON.parse(stored);
@@ -144,8 +144,8 @@ const getMoodLogsLocal = (username: string): MoodLog[] => {
   }
 };
 
-const getLatestMoodLogLocal = (username: string): MoodLog | null => {
-  const logs = getMoodLogsLocal(username);
+const getLatestMoodLogLocal = (uid: string): MoodLog | null => {
+  const logs = getMoodLogsLocal(uid);
   if (logs.length === 0) return null;
   
   return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
