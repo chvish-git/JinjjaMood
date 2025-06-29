@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
+import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,8 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,7 +35,7 @@ export const LoginPage: React.FC = () => {
     setIsProcessing(true);
     
     try {
-      const result = await login(usernameInput);
+      const result = await login(usernameInput, passwordInput);
       
       if (result.success) {
         if (result.isNewUser) {
@@ -62,7 +64,13 @@ export const LoginPage: React.FC = () => {
         }, 1000);
       } else if (result.error) {
         setErrorMessage(result.error);
-        toast.error('Login failed. Please try again.');
+        if (result.error.includes('Incorrect password')) {
+          toast.error('Wrong password. Try again! 🔐');
+        } else if (result.error.includes('Username already taken')) {
+          toast.error('Username taken. Pick another! 📝');
+        } else {
+          toast.error('Login failed. Please try again.');
+        }
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -81,7 +89,13 @@ export const LoginPage: React.FC = () => {
     setSuccessMessage(''); // Clear success message when user starts typing
   };
 
-  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2;
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordInput(e.target.value);
+    setErrorMessage(''); // Clear error when user starts typing
+    setSuccessMessage(''); // Clear success message when user starts typing
+  };
+
+  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2 || passwordInput.length === 0;
 
   // If user is already authenticated, show a different message
   if (isAuthenticated) {
@@ -125,7 +139,7 @@ export const LoginPage: React.FC = () => {
           </p>
           
           <p className="text-lg md:text-xl font-medium text-gray-800 max-w-2xl mx-auto">
-            Enter your vibe name
+            Your name. Your vibe. That's all we need.
           </p>
         </div>
 
@@ -145,7 +159,7 @@ export const LoginPage: React.FC = () => {
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to JinjjaMood</h2>
             <p className="text-gray-600 text-sm">
-              Enter a unique username to get started
+              Enter your username and password to login or create an account
             </p>
           </div>
 
@@ -175,7 +189,7 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Username Form */}
+          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
@@ -199,6 +213,39 @@ export const LoginPage: React.FC = () => {
               </div>
               <p className="mt-2 text-xs text-gray-500">
                 2-20 characters, letters, numbers, and underscores only
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  value={passwordInput}
+                  onChange={handlePasswordChange}
+                  placeholder="Enter your password"
+                  className="block w-full pl-3 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                  required
+                  disabled={isProcessing}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isProcessing}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                If username exists, we'll log you in. If not, we'll create your account!
               </p>
             </div>
 
@@ -232,7 +279,7 @@ export const LoginPage: React.FC = () => {
               <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
                 <Sparkles size={12} className="text-purple-600" />
               </div>
-              <span>Personalized mood tracking & insights</span>
+              <span>Cross-device access with username & password</span>
             </div>
             <div className="flex items-center gap-3 text-sm text-gray-600">
               <div className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center">
@@ -244,7 +291,7 @@ export const LoginPage: React.FC = () => {
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <User size={12} className="text-blue-600" />
               </div>
-              <span>Secure Firebase authentication</span>
+              <span>No OTPs. No trackers. Just vibes.</span>
             </div>
           </div>
         </div>
@@ -255,11 +302,11 @@ export const LoginPage: React.FC = () => {
         }`}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <CheckCircle size={16} className="text-green-600" />
-            <span className="text-sm font-medium text-gray-700">Simple & Private</span>
+            <span className="text-sm font-medium text-gray-700">Simple & Secure</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your mood data is stored securely with Firebase. Choose any unique username - 
-            if it's available, we'll create your account instantly. If it exists, you'll be logged in.
+            Your mood data is stored securely with Firebase. If your username exists, we'll log you in. 
+            If not, we'll create your account instantly. It's that simple!
           </p>
         </div>
       </div>
