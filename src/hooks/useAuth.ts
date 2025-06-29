@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { getAuth, signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
 import toast from 'react-hot-toast';
@@ -116,7 +116,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+      allow write: if request.auth != null && 
+                   request.auth.uid == userId &&
+                   request.resource.data.username is string &&
+                   request.resource.data.username.size() > 1;
     }
   }
 }
@@ -176,57 +180,52 @@ service cloud.firestore {
       
       console.log('🔵 DEBUG: Starting authentication process for username:', trimmedUsername);
 
-      // Step 1: Sign in anonymously with Firebase Auth
+      // Step 1: Check if username is already taken BEFORE creating Firebase user
+      console.log('🔵 DEBUG: Checking username uniqueness...');
+      const usernameQuery = query(
+        collection(db, 'users'),
+        where('username', '==', trimmedUsername)
+      );
+      const usernameSnapshot = await getDocs(usernameQuery);
+      
+      if (!usernameSnapshot.empty) {
+        // Username is already taken
+        console.log('❌ DEBUG: Username already taken:', trimmedUsername);
+        return { success: false, error: 'Username already taken. Please choose another one.' };
+      }
+      
+      console.log('✅ DEBUG: Username is available:', trimmedUsername);
+
+      // Step 2: Sign in anonymously with Firebase Auth
       const userCredential = await signInAnonymously(auth);
       const user = userCredential.user;
       console.log('✅ DEBUG: Firebase Auth successful, uid:', user.uid);
 
-      // Step 2: Check if user profile exists in Firestore
-      const userDocRef = doc(db, 'users', user.uid);
-      const existingUser = await getDoc(userDocRef);
+      // Step 3: Create new user profile with unique username
+      console.log('🔵 DEBUG: Creating new user profile');
+      const newUserProfile = {
+        username: trimmedUsername,
+        name: trimmedUsername, // Using username as display name
+        createdAt: serverTimestamp()
+      };
       
-      if (existingUser.exists()) {
-        // User profile exists - this is a returning user
-        console.log('✅ DEBUG: Existing user profile found');
-        const userData = existingUser.data();
-        const profile = {
-          uid: user.uid,
-          username: userData.username,
-          name: userData.name,
-          createdAt: userData.createdAt.toDate()
-        };
-        setUserProfile(profile);
-        
-        // Store user profile in localStorage for auto-login
-        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
-        
-        return { success: true, isNewUser: false };
-      } else {
-        // Step 3: Create new user profile
-        console.log('🔵 DEBUG: Creating new user profile');
-        const newUserProfile = {
-          username: trimmedUsername,
-          name: trimmedUsername, // Using username as display name
-          createdAt: serverTimestamp()
-        };
-        
-        await setDoc(userDocRef, newUserProfile);
-        console.log('✅ DEBUG: New user profile created successfully');
-        
-        // Set user profile
-        const profile = {
-          uid: user.uid,
-          username: trimmedUsername,
-          name: trimmedUsername,
-          createdAt: new Date()
-        };
-        setUserProfile(profile);
-        
-        // Store user profile in localStorage for auto-login
-        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
-        
-        return { success: true, isNewUser: true };
-      }
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, newUserProfile);
+      console.log('✅ DEBUG: New user profile created successfully');
+      
+      // Set user profile
+      const profile = {
+        uid: user.uid,
+        username: trimmedUsername,
+        name: trimmedUsername,
+        createdAt: new Date()
+      };
+      setUserProfile(profile);
+      
+      // Store user profile in localStorage for auto-login
+      localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
+      
+      return { success: true, isNewUser: true };
       
     } catch (err: any) {
       console.error('❌ DEBUG: Authentication error:', err);
@@ -289,6 +288,92 @@ See the browser console for detailed instructions.
     }
   };
 
+  const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
+    if (!userProfile?.uid) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const trimmedUsername = newUsername.trim().toLowerCase();
+    
+    // Basic validation
+    if (trimmedUsername.length < 2) {
+      return { success: false, error: 'Username must be at least 2 characters long' };
+    }
+    
+    if (trimmedUsername.length > 20) {
+      return { success: false, error: 'Username must be 20 characters or less' };
+    }
+    
+    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+      return { success: false, error: 'Username can only contain letters, numbers, and underscores' };
+    }
+
+    // Check for reserved usernames
+    const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
+    if (reservedNames.includes(trimmedUsername)) {
+      return { success: false, error: 'This username is reserved. Please choose another.' };
+    }
+
+    try {
+      // Check if new username is already taken
+      const usernameQuery = query(
+        collection(db, 'users'),
+        where('username', '==', trimmedUsername)
+      );
+      const usernameSnapshot = await getDocs(usernameQuery);
+      
+      if (!usernameSnapshot.empty) {
+        return { success: false, error: 'Username already taken. Please choose another one.' };
+      }
+
+      // Update user profile
+      const userDocRef = doc(db, 'users', userProfile.uid);
+      await setDoc(userDocRef, {
+        username: trimmedUsername,
+        name: trimmedUsername,
+        createdAt: userProfile.createdAt
+      });
+
+      // Update local state
+      const updatedProfile = {
+        ...userProfile,
+        username: trimmedUsername,
+        name: trimmedUsername
+      };
+      setUserProfile(updatedProfile);
+      localStorage.setItem('jinjjamood_currentUser', JSON.stringify(updatedProfile));
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error updating username:', error);
+      return { success: false, error: error.message || 'Failed to update username' };
+    }
+  };
+
+  const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!userProfile?.uid || !firebaseUser) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    try {
+      // Delete user profile from Firestore
+      const userDocRef = doc(db, 'users', userProfile.uid);
+      await setDoc(userDocRef, {}, { merge: false }); // This effectively deletes the document
+      
+      // Clear local state
+      setUserProfile(null);
+      localStorage.removeItem('jinjjamood_currentUser');
+      
+      // Sign out from Firebase Auth
+      await signOut(auth);
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      return { success: false, error: error.message || 'Failed to delete account' };
+    }
+  };
+
   const logout = async () => {
     console.log('🟡 DEBUG: useAuth logout() function started');
     console.log('🟡 DEBUG: Current userProfile before clearing:', userProfile);
@@ -336,6 +421,8 @@ See the browser console for detailed instructions.
     loading,
     error,
     checkUsernameAndCreateOrLogin,
+    updateUsername,
+    deleteAccount,
     logout,
     isAuthenticated
   };
