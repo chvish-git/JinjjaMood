@@ -2,22 +2,19 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Heart, BarChart3, User, LogOut, Menu, X, Moon, Sun, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const Navigation: React.FC = () => {
   const { isAuthenticated, logout, userProfile } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
     setIsMenuOpen(false);
-  };
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -54,8 +51,8 @@ export const Navigation: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                 isActive('/mood')
                   ? isDark 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-purple-100 text-purple-700'
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'bg-purple-100 text-purple-700 shadow-lg'
                   : isDark 
                     ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -70,8 +67,8 @@ export const Navigation: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                 isActive('/analytics')
                   ? isDark 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-purple-100 text-purple-700'
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'bg-purple-100 text-purple-700 shadow-lg'
                   : isDark 
                     ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -86,8 +83,8 @@ export const Navigation: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                 isActive('/history')
                   ? isDark 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-purple-100 text-purple-700'
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'bg-purple-100 text-purple-700 shadow-lg'
                   : isDark 
                     ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -102,8 +99,8 @@ export const Navigation: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                 isActive('/profile')
                   ? isDark 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-purple-100 text-purple-700'
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'bg-purple-100 text-purple-700 shadow-lg'
                   : isDark 
                     ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -171,8 +168,8 @@ export const Navigation: React.FC = () => {
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 ${
                   isActive('/mood')
                     ? isDark 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-purple-100 text-purple-700'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-purple-100 text-purple-700 shadow-lg'
                     : isDark 
                       ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -188,8 +185,8 @@ export const Navigation: React.FC = () => {
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 ${
                   isActive('/analytics')
                     ? isDark 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-purple-100 text-purple-700'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-purple-100 text-purple-700 shadow-lg'
                     : isDark 
                       ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -205,8 +202,8 @@ export const Navigation: React.FC = () => {
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 ${
                   isActive('/history')
                     ? isDark 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-purple-100 text-purple-700'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-purple-100 text-purple-700 shadow-lg'
                     : isDark 
                       ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -222,8 +219,8 @@ export const Navigation: React.FC = () => {
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 ${
                   isActive('/profile')
                     ? isDark 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-purple-100 text-purple-700'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-purple-100 text-purple-700 shadow-lg'
                     : isDark 
                       ? 'text-gray-300 hover:text-white hover:bg-white/10' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
   const { login, loading, isAuthenticated } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
@@ -15,6 +17,10 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    username?: string;
+    password?: string;
+  }>({});
 
   // Get the intended destination from location state
   const from = location.state?.from?.pathname || '/mood';
@@ -28,11 +34,38 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
+  // Real-time validation
+  const validateUsername = (username: string) => {
+    if (!username.trim()) return 'Username is required';
+    if (username.length < 2) return 'Username must be at least 2 characters';
+    if (username.length > 20) return 'Username must be 20 characters or less';
+    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Only letters, numbers, and underscores allowed';
+    return '';
+  };
+
+  const validatePassword = (password: string) => {
+    if (!password.trim()) return 'Password is required';
+    return '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
     setIsProcessing(true);
+    
+    // Validate inputs
+    const usernameError = validateUsername(usernameInput);
+    const passwordError = validatePassword(passwordInput);
+    
+    if (usernameError || passwordError) {
+      setValidationErrors({
+        username: usernameError,
+        password: passwordError
+      });
+      setIsProcessing(false);
+      return;
+    }
     
     try {
       const result = await login(usernameInput, passwordInput);
@@ -85,28 +118,40 @@ export const LoginPage: React.FC = () => {
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
     setUsernameInput(value);
-    setErrorMessage(''); // Clear error when user starts typing
-    setSuccessMessage(''); // Clear success message when user starts typing
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    // Real-time validation
+    const error = validateUsername(value);
+    setValidationErrors(prev => ({ ...prev, username: error }));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPasswordInput(e.target.value);
-    setErrorMessage(''); // Clear error when user starts typing
-    setSuccessMessage(''); // Clear success message when user starts typing
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    // Real-time validation
+    const error = validatePassword(e.target.value);
+    setValidationErrors(prev => ({ ...prev, password: error }));
   };
 
-  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2 || passwordInput.length === 0;
+  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2 || passwordInput.length === 0 || !!validationErrors.username || !!validationErrors.password;
 
   // If user is already authenticated, show a different message
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDark 
+          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+      }`}>
         <div className="text-center">
           <div className="text-6xl mb-4">✨</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
             You're already logged in!
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Redirecting you to your mood dashboard...
           </p>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
@@ -116,12 +161,22 @@ export const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100">
+    <div className={`min-h-screen ${
+      isDark 
+        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+        : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+    }`}>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-pink-300 rounded-full opacity-20 blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-300 rounded-full opacity-20 blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-300 rounded-full opacity-10 blur-3xl animate-pulse delay-2000"></div>
+        <div className={`absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-pulse ${
+          isDark ? 'bg-purple-500' : 'bg-pink-300'
+        }`}></div>
+        <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse delay-1000 ${
+          isDark ? 'bg-blue-500' : 'bg-blue-300'
+        }`}></div>
+        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-10 blur-3xl animate-pulse delay-2000 ${
+          isDark ? 'bg-pink-500' : 'bg-purple-300'
+        }`}></div>
       </div>
 
       {/* Main content */}
@@ -130,15 +185,23 @@ export const LoginPage: React.FC = () => {
         <div className={`text-center mb-8 transform transition-all duration-1000 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <h1 className="text-6xl md:text-8xl font-bold mb-4 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent animate-pulse">
+          <h1 className={`text-6xl md:text-8xl font-bold mb-4 bg-gradient-to-r ${
+            isDark 
+              ? 'from-pink-400 via-purple-400 to-blue-400' 
+              : 'from-pink-600 via-purple-600 to-blue-600'
+          } bg-clip-text text-transparent animate-pulse`}>
             JinjjaMood
           </h1>
           
-          <p className="text-sm md:text-base font-light tracking-wider text-gray-600 mb-2">
+          <p className={`text-sm md:text-base font-light tracking-wider mb-2 ${
+            isDark ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             jinjja → real/really
           </p>
           
-          <p className="text-lg md:text-xl font-medium text-gray-800 max-w-2xl mx-auto">
+          <p className={`text-lg md:text-xl font-medium max-w-2xl mx-auto ${
+            isDark ? 'text-white' : 'text-gray-800'
+          }`}>
             Your name. Your vibe. That's all we need.
           </p>
         </div>
@@ -147,25 +210,33 @@ export const LoginPage: React.FC = () => {
         <div className={`mb-8 transform transition-all duration-1000 delay-200 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <div className="w-32 h-32 mx-auto bg-gradient-to-br from-pink-200 to-purple-200 rounded-full flex items-center justify-center shadow-lg">
+          <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center shadow-lg ${
+            isDark ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-pink-200 to-purple-200'
+          }`}>
             <span className="text-4xl">🌸✨</span>
           </div>
         </div>
 
         {/* Login Card */}
-        <div className={`bg-white/80 backdrop-blur-sm border border-gray-200 rounded-3xl p-8 shadow-2xl max-w-md w-full transform transition-all duration-1000 delay-400 ${
+        <div className={`backdrop-blur-sm border rounded-3xl p-8 shadow-2xl max-w-md w-full transform transition-all duration-1000 delay-400 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        } ${
+          isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
         }`}>
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to JinjjaMood</h2>
-            <p className="text-gray-600 text-sm">
+            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Welcome to JinjjaMood
+            </h2>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               Enter your username and password to login or create an account
             </p>
           </div>
 
           {/* Success Message */}
           {successMessage && (
-            <div className="mb-4 p-4 rounded-xl border bg-green-50 border-green-200 text-green-800">
+            <div className={`mb-4 p-4 rounded-xl border ${
+              isDark ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-green-50 border-green-200 text-green-800'
+            }`}>
               <div className="flex items-start gap-2">
                 <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
@@ -178,7 +249,9 @@ export const LoginPage: React.FC = () => {
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="mb-4 p-4 rounded-xl border bg-red-50 border-red-200 text-red-800">
+            <div className={`mb-4 p-4 rounded-xl border ${
+              isDark ? 'bg-red-500/20 border-red-500/30 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
               <div className="flex items-start gap-2">
                 <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
@@ -192,12 +265,16 @@ export const LoginPage: React.FC = () => {
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="username" className={`block text-sm font-medium mb-2 ${
+                isDark ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+                  isDark ? 'text-gray-400' : 'text-gray-400'
+                }`}>
+                  <User className="h-5 w-5" />
                 </div>
                 <input
                   type="text"
@@ -205,19 +282,30 @@ export const LoginPage: React.FC = () => {
                   value={usernameInput}
                   onChange={handleUsernameChange}
                   placeholder="your_username"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                    validationErrors.username 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : isDark 
+                        ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                        : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                  }`}
                   maxLength={20}
                   required
                   disabled={isProcessing}
                 />
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              {validationErrors.username && (
+                <p className="mt-1 text-xs text-red-500">{validationErrors.username}</p>
+              )}
+              <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                 2-20 characters, letters, numbers, and underscores only
               </p>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
+                isDark ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Password
               </label>
               <div className="relative">
@@ -227,7 +315,13 @@ export const LoginPage: React.FC = () => {
                   value={passwordInput}
                   onChange={handlePasswordChange}
                   placeholder="Enter your password"
-                  className="block w-full pl-3 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                  className={`block w-full pl-3 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                    validationErrors.password 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : isDark 
+                        ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                        : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                  }`}
                   required
                   disabled={isProcessing}
                 />
@@ -238,13 +332,16 @@ export const LoginPage: React.FC = () => {
                   disabled={isProcessing}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
                   )}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              {validationErrors.password && (
+                <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
+              )}
+              <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                 If username exists, we'll log you in. If not, we'll create your account!
               </p>
             </div>
@@ -252,10 +349,18 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isButtonDisabled}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden"
+              className={`w-full py-4 px-6 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden ${
+                isDark 
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
+              }`}
             >
               {/* Button glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl ${
+                isDark 
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600' 
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600'
+              }`}></div>
               
               <span className="relative flex items-center justify-center gap-3">
                 {isProcessing ? (
@@ -275,20 +380,26 @@ export const LoginPage: React.FC = () => {
 
           {/* Features */}
           <div className="mt-6 space-y-3">
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+            <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                isDark ? 'bg-purple-500/20' : 'bg-purple-100'
+              }`}>
                 <Sparkles size={12} className="text-purple-600" />
               </div>
               <span>Cross-device access with username & password</span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <div className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center">
+            <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                isDark ? 'bg-pink-500/20' : 'bg-pink-100'
+              }`}>
                 <Sparkles size={12} className="text-pink-600" />
               </div>
               <span>Daily vibe quotes matched to your mood</span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+            <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                isDark ? 'bg-blue-500/20' : 'bg-blue-100'
+              }`}>
                 <User size={12} className="text-blue-600" />
               </div>
               <span>No OTPs. No trackers. Just vibes.</span>
@@ -302,9 +413,11 @@ export const LoginPage: React.FC = () => {
         }`}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <CheckCircle size={16} className="text-green-600" />
-            <span className="text-sm font-medium text-gray-700">Simple & Secure</span>
+            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Simple & Secure
+            </span>
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
             Your mood data is stored securely with Firebase. If your username exists, we'll log you in. 
             If not, we'll create your account instantly. It's that simple!
           </p>
@@ -316,7 +429,9 @@ export const LoginPage: React.FC = () => {
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-purple-400 rounded-full opacity-30 animate-bounce"
+            className={`absolute w-2 h-2 rounded-full opacity-30 animate-bounce ${
+              isDark ? 'bg-white' : 'bg-purple-400'
+            }`}
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const memeLines = [
   "Your vibe is valid. Even if it's unhinged.",
@@ -13,9 +14,9 @@ const memeLines = [
 
 export const LandingPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [currentMemeIndex, setCurrentMemeIndex] = useState(0);
-  const [isDark, setIsDark] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -34,10 +35,6 @@ export const LandingPage: React.FC = () => {
       navigate('/mood');
     }
   }, [isAuthenticated, navigate]);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
 
   return (
     <div className={`min-h-screen transition-all duration-1000 ${

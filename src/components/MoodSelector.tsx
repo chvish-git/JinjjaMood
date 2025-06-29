@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { MoodType } from '../types/mood';
 import { moodOptions, getMoodsByType } from '../data/moodOptions';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface MoodSelectorProps {
   selectedMood: MoodType | null;
   onMoodSelect: (mood: MoodType) => void;
-  isDark: boolean;
 }
 
-export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMoodSelect, isDark }) => {
+export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMoodSelect }) => {
+  const { isDark } = useTheme();
   const [activeCategory, setActiveCategory] = useState<'positive' | 'neutral' | 'negative' | 'bonus'>('positive');
 
   const categories = [
@@ -31,11 +32,11 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 ${
                 activeCategory === key
                   ? isDark 
-                    ? 'bg-white/20 text-white shadow-lg' 
-                    : 'bg-white text-gray-800 shadow-lg'
+                    ? 'bg-white/20 text-white shadow-lg transform scale-105' 
+                    : 'bg-white text-gray-800 shadow-lg transform scale-105'
                   : isDark 
                     ? 'text-gray-400 hover:text-white hover:bg-white/10' 
                     : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
@@ -55,12 +56,12 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
             key={mood}
             onClick={() => onMoodSelect(mood)}
             className={`
-              relative p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl
+              relative p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
               ${selectedMood === mood 
-                ? `bg-gradient-to-br ${isDark ? darkColor : color} text-white shadow-2xl scale-105` 
+                ? `bg-gradient-to-br ${isDark ? darkColor : color} text-white shadow-2xl scale-105 ring-2 ring-white ring-opacity-50` 
                 : isDark 
-                  ? 'bg-white/10 text-white hover:bg-white/20' 
-                  : 'bg-white/80 text-gray-800 hover:bg-white/90'
+                  ? 'bg-white/10 text-white hover:bg-white/20 hover:shadow-lg' 
+                  : 'bg-white/80 text-gray-800 hover:bg-white/90 hover:shadow-lg'
               }
               backdrop-blur-sm border border-white/20 group
             `}
@@ -76,14 +77,17 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
             </div>
             
             {selectedMood === mood && (
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none animate-pulse"></div>
             )}
+
+            {/* Hover glow effect */}
+            <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
           </button>
         ))}
       </div>
 
       {/* Category Description */}
-      <div className={`text-center mt-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+      <div className={`text-center mt-4 text-sm transition-all duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
         {activeCategory === 'positive' && "✨ Feeling good? These vibes are for you!"}
         {activeCategory === 'neutral' && "😐 Sometimes we're just... existing. That's valid too."}
         {activeCategory === 'negative' && "💙 Having a rough time? We see you and it's okay."}

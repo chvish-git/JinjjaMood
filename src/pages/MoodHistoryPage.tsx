@@ -8,6 +8,9 @@ import { WeeklyMoodChart } from '../components/charts/WeeklyMoodChart';
 import { generateMoodInsights, calculateMoodStats, MoodInsight } from '../utils/moodAnalysis';
 import { MoodLog, MoodType } from '../types/mood';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { MoodHistorySkeleton } from '../components/skeletons/MoodHistorySkeleton';
+import { MoodHistoryEmptyState } from '../components/EmptyStates';
 
 type DateRange = '7' | '14' | '30' | 'all';
 type MoodFilter = 'all' | MoodType;
@@ -15,6 +18,7 @@ type ChartView = 'trend' | 'distribution' | 'weekly';
 
 export const MoodHistoryPage: React.FC = () => {
   const { userProfile } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<MoodLog[]>([]);
@@ -25,7 +29,6 @@ export const MoodHistoryPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDark] = useState(false); // You can implement theme context later
 
   useEffect(() => {
     const loadLogs = async () => {
@@ -75,22 +78,20 @@ export const MoodHistoryPage: React.FC = () => {
 
   const getMoodEmoji = (mood: string) => {
     const emojiMap: { [key: string]: string } = {
-      'Sad': '😢',
-      'Neutral': '😐',
-      'Good': '😊',
-      'Stressed': '😰',
-      'Hyped': '🤩'
+      'joyful': '😊', 'productive': '💪', 'calm': '🧘', 'grateful': '🙏', 'energized': '⚡', 'confident': '✨',
+      'meh': '😑', 'blank': '😶', 'tired': '😴', 'chill': '😎', 'focused': '🎯', 'neutral': '😐',
+      'anxious': '😰', 'angry': '😠', 'stressed': '😵', 'low energy': '🔋', 'overwhelmed': '🌊', 'sad': '😢',
+      'ungovernable': '😈', 'CEO mode': '👑', 'fluff cloud': '☁️', 'main character': '🌟', 'chaos gremlin': '🔥', 'soft launch': '🌸'
     };
     return emojiMap[mood] || '😐';
   };
 
   const getMoodColor = (mood: string) => {
     const colorMap: { [key: string]: string } = {
-      'Sad': 'bg-blue-500',
-      'Neutral': 'bg-gray-500',
-      'Good': 'bg-green-500',
-      'Stressed': 'bg-orange-500',
-      'Hyped': 'bg-purple-500'
+      'joyful': 'bg-yellow-500', 'productive': 'bg-green-500', 'calm': 'bg-blue-500', 'grateful': 'bg-purple-500', 'energized': 'bg-amber-500', 'confident': 'bg-indigo-500',
+      'meh': 'bg-gray-500', 'blank': 'bg-stone-500', 'tired': 'bg-slate-500', 'chill': 'bg-teal-500', 'focused': 'bg-emerald-500', 'neutral': 'bg-gray-500',
+      'anxious': 'bg-orange-500', 'angry': 'bg-red-500', 'stressed': 'bg-yellow-500', 'low energy': 'bg-slate-500', 'overwhelmed': 'bg-blue-500', 'sad': 'bg-blue-500',
+      'ungovernable': 'bg-purple-500', 'CEO mode': 'bg-yellow-500', 'fluff cloud': 'bg-pink-400', 'main character': 'bg-rose-500', 'chaos gremlin': 'bg-orange-500', 'soft launch': 'bg-pink-400'
     };
     return colorMap[mood] || 'bg-gray-500';
   };
@@ -99,10 +100,11 @@ export const MoodHistoryPage: React.FC = () => {
 
   const exportMoodData = () => {
     const csvContent = [
-      ['Date', 'Mood', 'Journal Entry'],
+      ['Date', 'Mood', 'Type', 'Journal Entry'],
       ...filteredLogs.map(log => [
         log.timestamp.toLocaleDateString(),
         log.mood,
+        log.moodType,
         log.journalEntry || ''
       ])
     ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -135,20 +137,7 @@ export const MoodHistoryPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Loading your mood history...
-          </p>
-        </div>
-      </div>
-    );
+    return <MoodHistorySkeleton />;
   }
 
   if (error) {
@@ -190,29 +179,7 @@ export const MoodHistoryPage: React.FC = () => {
   }
 
   if (allLogs.length === 0) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            No mood history yet
-          </h2>
-          <p className={`text-lg mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Start tracking your vibes to see your journey unfold
-          </p>
-          <button
-            onClick={() => navigate('/mood')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:scale-105 transition-transform duration-300"
-          >
-            Start Your Journey
-          </button>
-        </div>
-      </div>
-    );
+    return <MoodHistoryEmptyState />;
   }
 
   return (
@@ -330,11 +297,17 @@ export const MoodHistoryPage: React.FC = () => {
                   }`}
                 >
                   <option value="all">All moods</option>
-                  <option value="Sad">😢 Sad</option>
-                  <option value="Stressed">😰 Stressed</option>
-                  <option value="Neutral">😐 Neutral</option>
-                  <option value="Good">😊 Good</option>
-                  <option value="Hyped">🤩 Hyped</option>
+                  <option value="joyful">😊 Joyful</option>
+                  <option value="productive">💪 Productive</option>
+                  <option value="calm">🧘 Calm</option>
+                  <option value="grateful">🙏 Grateful</option>
+                  <option value="energized">⚡ Energized</option>
+                  <option value="confident">✨ Confident</option>
+                  <option value="meh">😑 Meh</option>
+                  <option value="tired">😴 Tired</option>
+                  <option value="anxious">😰 Anxious</option>
+                  <option value="stressed">😵 Stressed</option>
+                  <option value="sad">😢 Sad</option>
                 </select>
               </div>
             </div>
