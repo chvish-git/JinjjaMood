@@ -45,7 +45,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-all duration-1000 ${
+    <div className={`layout-stable transition-all duration-1000 ${
       isDark 
         ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
         : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
@@ -99,79 +99,77 @@ export const LandingPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">
-        {/* PERFECT Enhanced Header */}
-        <div className={`text-center mb-16 transform transition-all duration-1000 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <div className="relative mb-8">
-            {/* PERFECT JinjjaMood title - just right size */}
-            <h1 className={`
-              font-black mb-8 text-gradient animate-fadeInUp tracking-tight leading-none
-              text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem]
-              drop-shadow-2xl
-            `}>
-              JinjjaMood
-            </h1>
-            
-            {/* Enhanced decorative elements */}
-            <div className="absolute -top-6 -right-6 md:-top-8 md:-right-8">
-              <Star className="text-yellow-400 animate-sparkle" size={36} />
-            </div>
-            <div className="absolute -bottom-3 -left-6 md:-bottom-4 md:-left-8">
-              <Heart className="text-pink-400 animate-gentle-wave" size={28} />
-            </div>
-            <div className="absolute top-1/2 -right-3 md:-right-6">
-              <Sparkles className="text-purple-400 animate-pulse" size={24} />
-            </div>
-          </div>
-          
-          {/* Subtitle with better spacing */}
-          <p className={`text-lg md:text-xl font-light tracking-wider mb-4 ${
-            isDark ? 'text-gray-300' : 'text-gray-600'
+      {/* Main content with proper centering */}
+      <div className="content-container">
+        <div className="text-center space-y-12">
+          {/* PERFECT Enhanced Header with proper spacing */}
+          <div className={`transform transition-all duration-1000 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            jinjja → real/really
-          </p>
-        </div>
-
-        {/* Enhanced dynamic meme line with more space */}
-        <div className={`text-center mb-20 h-24 flex items-center justify-center transform transition-all duration-1000 delay-300 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <div className="glass-strong rounded-2xl px-8 py-6 max-w-3xl">
-            <p className={`text-xl md:text-2xl font-medium transition-all duration-500 text-primary`}>
-              {memeLines[currentMemeIndex]}
+            <div className="relative mb-8">
+              {/* PERFECT JinjjaMood title - just right size with proper line height */}
+              <h1 className="text-display text-gradient animate-fadeInUp text-render-optimized prevent-shift">
+                JinjjaMood
+              </h1>
+              
+              {/* Enhanced decorative elements with proper positioning */}
+              <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6">
+                <Star className="text-yellow-400 animate-sparkle" size={32} />
+              </div>
+              <div className="absolute -bottom-2 -left-4 md:-bottom-3 md:-left-6">
+                <Heart className="text-pink-400 animate-gentle-wave" size={24} />
+              </div>
+              <div className="absolute top-1/2 -right-2 md:-right-4">
+                <Sparkles className="text-purple-400 animate-pulse" size={20} />
+              </div>
+            </div>
+            
+            {/* Subtitle with better spacing */}
+            <p className={`text-lg md:text-xl font-light tracking-wider mb-4 ${
+              isDark ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              jinjja → real/really
             </p>
           </div>
-        </div>
 
-        {/* Enhanced CTA Button with more prominence */}
-        <div className={`transform transition-all duration-1000 delay-500 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <button
-            onClick={handleEnterVibeZone}
-            className="group relative btn-primary text-xl md:text-2xl px-16 py-8 animate-pulse-glow rounded-3xl"
-          >
-            <span className="flex items-center gap-4 relative z-10">
-              <Sparkles size={28} className="group-hover:rotate-12 transition-transform duration-300" />
-              <span className="font-bold">Enter your vibe zone</span>
-              <ArrowRight size={28} className="group-hover:translate-x-2 transition-transform duration-300" />
-            </span>
-            
-            {/* Enhanced glow effect */}
-            <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
-          </button>
-        </div>
+          {/* Enhanced dynamic meme line with proper spacing */}
+          <div className={`transform transition-all duration-1000 delay-300 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <div className="glass-strong rounded-2xl px-8 py-6 max-w-3xl mx-auto">
+              <p className="text-xl md:text-2xl font-medium transition-all duration-500 text-primary">
+                {memeLines[currentMemeIndex]}
+              </p>
+            </div>
+          </div>
 
-        {/* Enhanced Footer with more space */}
-        <div className={`absolute bottom-8 text-center transform transition-all duration-1000 delay-700 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            Made with too many feelings + Bolt.new ✨
-          </p>
+          {/* Enhanced CTA Button with proper spacing */}
+          <div className={`transform transition-all duration-1000 delay-500 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <button
+              onClick={handleEnterVibeZone}
+              className="group relative btn-primary text-xl md:text-2xl px-12 py-6 animate-pulse-glow rounded-3xl"
+            >
+              <span className="flex items-center gap-4 relative z-10">
+                <Sparkles size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+                <span className="font-bold">Enter your vibe zone</span>
+                <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
+              </span>
+              
+              {/* Enhanced glow effect */}
+              <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
+            </button>
+          </div>
+
+          {/* Enhanced Footer with proper positioning */}
+          <div className={`transform transition-all duration-1000 delay-700 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Made with too many feelings + Bolt.new ✨
+            </p>
+          </div>
         </div>
       </div>
     </div>
