@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Sparkles, Clock, Calendar } from 'lucide-react';
+import { Send, Sparkles, Clock, Calendar, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import { MoodSelector } from '../components/MoodSelector';
@@ -8,6 +8,8 @@ import { JournalInput } from '../components/JournalInput';
 import { MoodType } from '../types/mood';
 import { saveMoodLog, checkDailyMoodLimit } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+
+const DAILY_MOOD_LIMIT = 5;
 
 export const MoodCheckPage: React.FC = () => {
   const { userProfile } = useAuth();
@@ -17,22 +19,23 @@ export const MoodCheckPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [hasLoggedToday, setHasLoggedToday] = useState(false);
+  const [dailyCount, setDailyCount] = useState(0);
+  const [hasReachedLimit, setHasReachedLimit] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
-  const [isDark] = useState(false); // You can implement theme context later
+  const [isDark] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
     
-    // Check if user has already logged mood today
     const checkDailyLimit = async () => {
       if (userProfile?.uid) {
         try {
-          const hasLogged = await checkDailyMoodLimit(userProfile.uid);
-          setHasLoggedToday(hasLogged);
+          const { hasReachedLimit: limitReached, count } = await checkDailyMoodLimit(userProfile.uid);
+          setHasReachedLimit(limitReached);
+          setDailyCount(count);
           
-          if (hasLogged) {
-            setErrorMessage('You\'ve already logged your mood today! Come back tomorrow for another check-in. 🌅');
+          if (limitReached) {
+            setErrorMessage(`You've logged ${DAILY_MOOD_LIMIT} moods today! Rest your vibe sensors! 🧠✨`);
           }
         } catch (error) {
           console.error('Error checking daily limit:', error);
@@ -45,7 +48,6 @@ export const MoodCheckPage: React.FC = () => {
   }, [userProfile?.uid]);
 
   const handleSubmit = async () => {
-    // Validation
     if (!selectedMood) {
       setErrorMessage('Please select a mood.');
       toast.error('Please select a mood first! 💭');
@@ -58,10 +60,9 @@ export const MoodCheckPage: React.FC = () => {
       return;
     }
 
-    // Check daily limit before submitting
-    if (hasLoggedToday) {
-      setErrorMessage('You\'ve already logged your mood today! Come back tomorrow. 🌅');
-      toast.error('You\'ve already logged your mood today! 🌅');
+    if (hasReachedLimit) {
+      setErrorMessage(`You've logged ${DAILY_MOOD_LIMIT} moods today! Rest your vibe sensors! 🧠✨`);
+      toast.error('Daily mood limit reached! 🧠✨');
       return;
     }
 
@@ -101,10 +102,10 @@ export const MoodCheckPage: React.FC = () => {
       const errorMsg = error.message || 'Failed to save mood log. Please try again.';
       setErrorMessage(errorMsg);
       
-      // Special handling for daily limit error
-      if (errorMsg.includes('already logged your mood today')) {
-        setHasLoggedToday(true);
-        toast.error('You\'ve already logged your mood today! 🌅', {
+      if (errorMsg.includes('Rest your vibe sensors')) {
+        setHasReachedLimit(true);
+        setDailyCount(DAILY_MOOD_LIMIT);
+        toast.error('Daily mood limit reached! 🧠✨', {
           duration: 4000,
         });
       } else {
@@ -114,7 +115,6 @@ export const MoodCheckPage: React.FC = () => {
     }
   };
 
-  // Show loading state while checking daily limit
   if (checkingLimit) {
     return (
       <div className={`min-h-screen flex items-center justify-center pt-16 ${
@@ -157,43 +157,51 @@ export const MoodCheckPage: React.FC = () => {
           <h1 className={`text-4xl md:text-6xl font-bold mb-4 ${
             isDark ? 'text-white' : 'text-gray-800'
           }`}>
-            {hasLoggedToday ? 'You\'re all set for today!' : 'What\'s your vibe today?'}
+            {hasReachedLimit ? 'Vibe sensors need a break!' : 'What\'s your vibe today?'}
           </h1>
           
           <p className={`text-lg md:text-xl font-light ${
             isDark ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            {hasLoggedToday ? 'Come back tomorrow for another check-in' : 'Pick your vibe. No pressure.'}
+            {hasReachedLimit 
+              ? 'You\'ve reached your daily mood limit. Come back tomorrow!' 
+              : `Pick your vibe. ${DAILY_MOOD_LIMIT - dailyCount} left today.`
+            }
           </p>
 
-          {/* Auto-timestamp indicator */}
-          {!hasLoggedToday && (
+          {/* Daily counter */}
+          {!hasReachedLimit && (
             <div className={`flex items-center justify-center gap-2 mt-4 text-sm ${
               isDark ? 'text-gray-400' : 'text-gray-600'
             }`}>
               <Clock size={16} />
-              <span>Timestamp: {new Date().toLocaleString()}</span>
+              <span>Mood {dailyCount + 1} of {DAILY_MOOD_LIMIT} today</span>
             </div>
           )}
         </div>
 
         {/* Daily Limit Message */}
-        {hasLoggedToday && (
+        {hasReachedLimit && (
           <div className={`mb-8 p-6 rounded-2xl backdrop-blur-sm border max-w-md mx-auto text-center transform transition-all duration-1000 delay-200 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           } ${
             isDark 
-              ? 'bg-blue-500/20 border-blue-400/30 text-blue-300' 
-              : 'bg-blue-50 border-blue-200 text-blue-800'
+              ? 'bg-purple-500/20 border-purple-400/30 text-purple-300' 
+              : 'bg-purple-50 border-purple-200 text-purple-800'
           }`}>
             <div className="flex items-center justify-center gap-2 mb-3">
-              <Calendar className="text-blue-400" size={24} />
-              <span className="text-lg font-semibold">Daily Check-in Complete!</span>
+              <AlertCircle className="text-purple-400" size={24} />
+              <span className="text-lg font-semibold">Daily Vibe Limit Reached!</span>
             </div>
-            <p className="text-sm leading-relaxed">
-              You've already logged your mood today. Consistency is key! 
+            <p className="text-sm leading-relaxed mb-4">
+              You've logged {DAILY_MOOD_LIMIT} moods today. Your vibe sensors need time to recharge! 
               Come back tomorrow to continue your jinjja journey.
             </p>
+            <div className="flex justify-center gap-2">
+              {Array.from({ length: DAILY_MOOD_LIMIT }, (_, i) => (
+                <div key={i} className="w-3 h-3 rounded-full bg-purple-400"></div>
+              ))}
+            </div>
             <div className="mt-4">
               <button
                 onClick={() => navigate('/history')}
@@ -210,7 +218,7 @@ export const MoodCheckPage: React.FC = () => {
         )}
 
         {/* Error Message */}
-        {errorMessage && !hasLoggedToday && (
+        {errorMessage && !hasReachedLimit && (
           <div className={`mb-6 p-4 rounded-xl border max-w-md mx-auto ${
             isDark 
               ? 'bg-red-900/20 border-red-500/30 text-red-300' 
@@ -220,8 +228,8 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Mood Selector - Only show if user hasn't logged today */}
-        {!hasLoggedToday && (
+        {/* Mood Selector - Only show if user hasn't reached limit */}
+        {!hasReachedLimit && (
           <div className={`mb-12 transform transition-all duration-1000 delay-300 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
@@ -229,15 +237,15 @@ export const MoodCheckPage: React.FC = () => {
               selectedMood={selectedMood}
               onMoodSelect={(mood) => {
                 setSelectedMood(mood);
-                setErrorMessage(''); // Clear error when mood is selected
+                setErrorMessage('');
               }}
               isDark={isDark}
             />
           </div>
         )}
 
-        {/* Journal Input - Only show if user hasn't logged today */}
-        {!hasLoggedToday && (
+        {/* Journal Input - Only show if user hasn't reached limit */}
+        {!hasReachedLimit && (
           <div className={`mb-12 w-full transform transition-all duration-1000 delay-500 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
@@ -249,16 +257,16 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Submit Button - Only show if user hasn't logged today */}
-        {!hasLoggedToday && (
+        {/* Submit Button - Only show if user hasn't reached limit */}
+        {!hasReachedLimit && (
           <div className={`transform transition-all duration-1000 delay-700 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || hasLoggedToday}
+              disabled={isSubmitting || hasReachedLimit}
               className={`group relative px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${
-                selectedMood && !hasLoggedToday
+                selectedMood && !hasReachedLimit
                   ? isDark 
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
                     : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
@@ -275,14 +283,14 @@ export const MoodCheckPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    Submit Today's Mood
+                    Log Mood ({dailyCount + 1}/{DAILY_MOOD_LIMIT})
                     <Send size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </span>
               
               {/* Glow effect */}
-              {selectedMood && !hasLoggedToday && (
+              {selectedMood && !hasReachedLimit && (
                 <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
                   isDark 
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 blur-xl' 

@@ -17,19 +17,34 @@ service cloud.firestore {
                    request.resource.data.createdAt != null;
     }
     
-    // Mood logs collection - secure per-user access
+    // Mood logs collection - secure per-user access with expanded mood validation
     match /moodLogs/{logId} {
       // Allow reading only own mood logs
       allow read: if request.auth != null && 
                   resource.data.uid == request.auth.uid;
       
-      // Allow writing only own mood logs with validation
+      // Allow writing only own mood logs with validation for new expanded moods
       allow write: if request.auth != null && 
                    request.resource.data.uid == request.auth.uid &&
                    request.resource.data.mood is string &&
-                   request.resource.data.mood in ['Sad', 'Neutral', 'Good', 'Stressed', 'Hyped'] &&
+                   request.resource.data.mood in [
+                     // Positive moods
+                     'joyful', 'productive', 'calm', 'grateful', 'energized', 'confident',
+                     // Neutral moods
+                     'meh', 'blank', 'tired', 'chill', 'focused', 'neutral',
+                     // Negative moods
+                     'anxious', 'angry', 'stressed', 'low energy', 'overwhelmed', 'sad',
+                     // Bonus moods
+                     'ungovernable', 'CEO mode', 'fluff cloud', 'main character', 'chaos gremlin', 'soft launch'
+                   ] &&
+                   request.resource.data.moodType is string &&
+                   request.resource.data.moodType in ['positive', 'neutral', 'negative', 'bonus'] &&
                    request.resource.data.journalEntry is string &&
-                   request.resource.data.timestamp != null;
+                   request.resource.data.timestamp != null &&
+                   request.resource.data.day is string &&
+                   request.resource.data.hour is number &&
+                   request.resource.data.hour >= 0 &&
+                   request.resource.data.hour <= 23;
     }
   }
 }

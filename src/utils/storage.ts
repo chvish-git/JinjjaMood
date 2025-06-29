@@ -1,93 +1,70 @@
 import { MoodLog } from '../types/mood';
 import { collection, addDoc, query, orderBy, getDocs, where, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, format } from 'date-fns';
+import { getMoodOption, getMoodValue } from '../data/moodOptions';
 
 const COLLECTION_NAME = 'moodLogs';
+const DAILY_MOOD_LIMIT = 5;
 
-export const checkDailyMoodLimit = async (uid: string): Promise<boolean> => {
+export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimit: boolean; count: number }> => {
   if (!uid) {
-    return false;
+    return { hasReachedLimit: false, count: 0 };
   }
 
   try {
     const today = new Date();
-    const startOfToday = startOfDay(today);
-    const endOfToday = endOfDay(today);
+    const todayString = format(today, 'yyyy-MM-dd');
 
-    // Use a simpler query that doesn't require a complex index
+    // Use the day field for efficient querying
     const q = query(
       collection(db, COLLECTION_NAME),
       where('uid', '==', uid),
-      orderBy('timestamp', 'desc'),
-      limit(50) // Get recent logs and filter client-side
+      where('day', '==', todayString)
     );
     
     const querySnapshot = await getDocs(q);
+    const count = querySnapshot.size;
     
-    // Filter client-side for today's entries
-    const todayLogs = querySnapshot.docs.filter(doc => {
-      const data = doc.data();
-      const logDate = data.timestamp.toDate();
-      return logDate >= startOfToday && logDate <= endOfToday;
-    });
-    
-    return todayLogs.length > 0; // Returns true if user already logged mood today
+    return { 
+      hasReachedLimit: count >= DAILY_MOOD_LIMIT, 
+      count 
+    };
   } catch (error: any) {
     console.error('Error checking daily mood limit:', error);
     
-    // If we get an index error, try a simpler approach
-    if (error.message?.includes('index')) {
-      console.log('Index not available, using fallback method...');
-      try {
-        // Fallback: get all user logs and filter client-side
-        const simpleQuery = query(
-          collection(db, COLLECTION_NAME),
-          where('uid', '==', uid)
-        );
-        const snapshot = await getDocs(simpleQuery);
-        
-        const today = new Date();
-        const startOfToday = startOfDay(today);
-        const endOfToday = endOfDay(today);
-        
-        const todayLogs = snapshot.docs.filter(doc => {
-          const data = doc.data();
-          const logDate = data.timestamp.toDate();
-          return logDate >= startOfToday && logDate <= endOfToday;
-        });
-        
-        return todayLogs.length > 0;
-      } catch (fallbackError) {
-        console.error('Fallback method also failed:', fallbackError);
-        return checkDailyMoodLimitLocal(uid);
-      }
-    }
-    
     // Fallback to localStorage check
-    return checkDailyMoodLimitLocal(uid);
+    const localResult = checkDailyMoodLimitLocal(uid);
+    return { 
+      hasReachedLimit: localResult, 
+      count: localResult ? DAILY_MOOD_LIMIT : 0 
+    };
   }
 };
 
-export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, uid: string): Promise<MoodLog> => {
+export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, uid: string): Promise<MoodLog> => {
   if (!uid) {
     throw new Error('User ID is required to save mood logs');
   }
 
-  // Check if user already logged mood today
-  const hasLoggedToday = await checkDailyMoodLimit(uid);
-  if (hasLoggedToday) {
-    throw new Error('You\'ve already logged your mood today. Come back tomorrow! 🌅');
+  // Check if user has reached daily limit
+  const { hasReachedLimit, count } = await checkDailyMoodLimit(uid);
+  if (hasReachedLimit) {
+    throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
   }
 
   try {
-    // Auto-fill timestamp from system clock
+    // Auto-fill timestamp and derived fields
     const now = new Date();
+    const moodOption = getMoodOption(moodLog.mood as any);
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...moodLog,
       uid: uid,
-      timestamp: serverTimestamp(), // Auto-filled from system
+      timestamp: serverTimestamp(),
+      day: format(now, 'yyyy-MM-dd'),
+      hour: now.getHours(),
+      moodType: moodOption?.type || 'neutral',
       readableDate: now.toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 
@@ -99,29 +76,29 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id'>, uid: string): Pr
     return {
       ...moodLog,
       id: docRef.id,
-      timestamp: now // Use local time for immediate display
+      timestamp: now,
+      day: format(now, 'yyyy-MM-dd'),
+      hour: now.getHours(),
+      moodType: moodOption?.type || 'neutral'
     };
   } catch (error: any) {
     console.error('Error saving mood log:', error);
     
-    // Handle specific Firebase permission errors
     if (error.code === 'permission-denied') {
       throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
     }
     
-    // Fallback to localStorage for offline functionality
+    // Fallback to localStorage
     return saveMoodLogLocal(moodLog, uid);
   }
 };
 
 export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
   if (!uid) {
-    // Return local storage data if no uid
     return getMoodLogsLocal(uid);
   }
 
   try {
-    // Use a simple query first
     const q = query(
       collection(db, COLLECTION_NAME),
       where('uid', '==', uid)
@@ -135,8 +112,11 @@ export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
       logs.push({
         id: doc.id,
         mood: data.mood,
+        moodType: data.moodType || 'neutral',
         journalEntry: data.journalEntry,
-        timestamp: data.timestamp.toDate()
+        timestamp: data.timestamp.toDate(),
+        day: data.day || format(data.timestamp.toDate(), 'yyyy-MM-dd'),
+        hour: data.hour || data.timestamp.toDate().getHours()
       });
     });
     
@@ -147,12 +127,10 @@ export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
   } catch (error: any) {
     console.error('Error fetching mood logs:', error);
     
-    // Handle specific Firebase permission errors
     if (error.code === 'permission-denied') {
       throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
     }
     
-    // Fallback to localStorage
     return getMoodLogsLocal(uid);
   }
 };
@@ -163,19 +141,16 @@ export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => 
   }
 
   try {
-    // Get all logs and find the latest client-side to avoid index issues
     const logs = await getMoodLogs(uid);
     
     if (logs.length === 0) {
       return null;
     }
     
-    // Return the first one (already sorted by timestamp desc)
     return logs[0];
   } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
     
-    // Handle specific Firebase permission errors
     if (error.code === 'permission-denied') {
       throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
     }
@@ -184,30 +159,77 @@ export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => 
   }
 };
 
-// Fallback localStorage functions for offline functionality
+export const getMoodLogsByDateRange = async (
+  uid: string, 
+  startDate: Date, 
+  endDate: Date
+): Promise<MoodLog[]> => {
+  if (!uid) {
+    return [];
+  }
+
+  try {
+    const startDay = format(startDate, 'yyyy-MM-dd');
+    const endDay = format(endDate, 'yyyy-MM-dd');
+
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('uid', '==', uid),
+      where('day', '>=', startDay),
+      where('day', '<=', endDay)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const logs: MoodLog[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      logs.push({
+        id: doc.id,
+        mood: data.mood,
+        moodType: data.moodType || 'neutral',
+        journalEntry: data.journalEntry,
+        timestamp: data.timestamp.toDate(),
+        day: data.day,
+        hour: data.hour || data.timestamp.toDate().getHours()
+      });
+    });
+    
+    return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  } catch (error: any) {
+    console.error('Error fetching mood logs by date range:', error);
+    return [];
+  }
+};
+
+// Fallback localStorage functions
 const STORAGE_KEY = 'jinjjamood_logs';
 
 const checkDailyMoodLimitLocal = (uid: string): boolean => {
   const logs = getMoodLogsLocal(uid);
-  const today = new Date().toDateString();
+  const today = format(new Date(), 'yyyy-MM-dd');
   
-  return logs.some(log => log.timestamp.toDateString() === today);
+  const todayLogs = logs.filter(log => log.day === today);
+  return todayLogs.length >= DAILY_MOOD_LIMIT;
 };
 
-const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id'>, uid: string): MoodLog => {
-  // Check daily limit for localStorage too
-  const hasLoggedToday = checkDailyMoodLimitLocal(uid);
-  if (hasLoggedToday) {
-    throw new Error('You\'ve already logged your mood today. Come back tomorrow! 🌅');
+const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, uid: string): MoodLog => {
+  const hasReachedLimit = checkDailyMoodLimitLocal(uid);
+  if (hasReachedLimit) {
+    throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
   }
 
   const logs = getMoodLogsLocal(uid);
-  const now = new Date(); // Auto-fill timestamp
+  const now = new Date();
+  const moodOption = getMoodOption(moodLog.mood as any);
   
   const newLog: MoodLog = {
     ...moodLog,
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-    timestamp: now // Auto-filled from system clock
+    timestamp: now,
+    day: format(now, 'yyyy-MM-dd'),
+    hour: now.getHours(),
+    moodType: moodOption?.type || 'neutral'
   };
   
   logs.push(newLog);
@@ -223,7 +245,10 @@ const getMoodLogsLocal = (uid: string): MoodLog[] => {
     const logs = JSON.parse(stored);
     return logs.map((log: any) => ({
       ...log,
-      timestamp: new Date(log.timestamp)
+      timestamp: new Date(log.timestamp),
+      moodType: log.moodType || 'neutral',
+      day: log.day || format(new Date(log.timestamp), 'yyyy-MM-dd'),
+      hour: log.hour || new Date(log.timestamp).getHours()
     }));
   } catch (error) {
     console.error('Error loading mood logs from localStorage:', error);
