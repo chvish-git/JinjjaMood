@@ -14,8 +14,7 @@ service cloud.firestore {
                     request.resource.data.username.size() <= 20 &&
                     request.resource.data.username.matches('^[a-z0-9_]+$') &&
                     request.resource.data.email is string &&
-                    request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
-                    request.resource.data.createdAt != null;
+                    request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
       
       // Allow updating own profile
       allow update: if request.auth != null && 
