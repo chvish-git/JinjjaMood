@@ -52,19 +52,43 @@ export const MoodCheckPage: React.FC = () => {
   const handleSubmit = async () => {
     if (!selectedMood) {
       setErrorMessage('Please select a mood.');
-      toast.error('Please select a mood first! 💭');
+      toast.error('Please select a mood first! 💭', {
+        style: {
+          background: isDark ? '#1f2937' : '#ffffff',
+          color: isDark ? '#ffffff' : '#1f2937',
+          border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
+          borderRadius: '12px',
+          fontWeight: '600',
+        },
+      });
       return;
     }
 
     if (!userProfile?.uid) {
       setErrorMessage('Authentication error. Please try logging in again.');
-      toast.error('Authentication error. Please try again.');
+      toast.error('Authentication error. Please try again.', {
+        style: {
+          background: isDark ? '#1f2937' : '#ffffff',
+          color: isDark ? '#ffffff' : '#1f2937',
+          border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
+          borderRadius: '12px',
+          fontWeight: '600',
+        },
+      });
       return;
     }
 
     if (hasReachedLimit) {
       setErrorMessage(`You've logged ${DAILY_MOOD_LIMIT} moods today! Rest your vibe sensors! 🧠✨`);
-      toast.error('Daily mood limit reached! 🧠✨');
+      toast.error('Daily mood limit reached! 🧠✨', {
+        style: {
+          background: isDark ? '#1f2937' : '#ffffff',
+          color: isDark ? '#ffffff' : '#1f2937',
+          border: `2px solid ${isDark ? '#f59e0b' : '#d97706'}`,
+          borderRadius: '12px',
+          fontWeight: '600',
+        },
+      });
       return;
     }
 
@@ -86,6 +110,10 @@ export const MoodCheckPage: React.FC = () => {
 
       console.log('✅ DEBUG: Mood log saved successfully:', savedLog);
 
+      // Check if this is the 5th mood log of the day
+      const newCount = dailyCount + 1;
+      const isHighFive = newCount === DAILY_MOOD_LIMIT;
+
       // Get mood-specific feedback
       const feedback = getMoodFeedback(selectedMood);
       
@@ -93,31 +121,69 @@ export const MoodCheckPage: React.FC = () => {
       createMoodAnimation(feedback);
       createMoodOverlay(feedback.type);
 
-      // Show mood-specific toast
-      toast.success(feedback.message, {
-        duration: feedback.duration,
-        style: {
-          background: `linear-gradient(135deg, ${feedback.color.replace('from-', '').replace('to-', ', ')})`,
-          color: '#fff',
-          fontWeight: '600',
-        },
-        icon: feedback.emoji,
-      });
-
-      // Only use confetti for positive moods
-      if (feedback.type === 'positive' || feedback.type === 'bonus') {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#FF6B9D', '#A855F7', '#06B6D4', '#10B981', '#F59E0B']
+      if (isHighFive) {
+        // Special celebration for 5th mood log
+        toast.success('🙌 High-five to your five mood logs! Take enough rest and stay hydrated lol', {
+          duration: 6000,
+          style: {
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: '#ffffff',
+            border: '2px solid #34d399',
+            borderRadius: '16px',
+            fontWeight: '700',
+            fontSize: '16px',
+            padding: '16px 20px',
+            maxWidth: '400px',
+          },
+          icon: '🎉',
         });
+
+        // Extra confetti for the celebration
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5']
+        });
+
+        // Second wave of confetti
+        setTimeout(() => {
+          confetti({
+            particleCount: 100,
+            spread: 80,
+            origin: { y: 0.7 },
+            colors: ['#fbbf24', '#f59e0b', '#d97706', '#92400e']
+          });
+        }, 500);
+      } else {
+        // Show mood-specific toast with better contrast
+        toast.success(feedback.message, {
+          duration: feedback.duration,
+          style: {
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#ffffff' : '#1f2937',
+            border: `2px solid ${isDark ? '#10b981' : '#059669'}`,
+            borderRadius: '12px',
+            fontWeight: '600',
+          },
+          icon: feedback.emoji,
+        });
+
+        // Only use confetti for positive moods (non-celebration)
+        if (feedback.type === 'positive' || feedback.type === 'bonus') {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ['#FF6B9D', '#A855F7', '#06B6D4', '#10B981', '#F59E0B']
+          });
+        }
       }
 
       // Navigate to results page
       setTimeout(() => {
         navigate('/results');
-      }, 1500);
+      }, isHighFive ? 2000 : 1500);
     } catch (error: any) {
       console.error('❌ DEBUG: Error saving mood log:', error);
       const errorMsg = error.message || 'Failed to save mood log. Please try again.';
@@ -128,9 +194,24 @@ export const MoodCheckPage: React.FC = () => {
         setDailyCount(DAILY_MOOD_LIMIT);
         toast.error('Daily mood limit reached! 🧠✨', {
           duration: 4000,
+          style: {
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#ffffff' : '#1f2937',
+            border: `2px solid ${isDark ? '#f59e0b' : '#d97706'}`,
+            borderRadius: '12px',
+            fontWeight: '600',
+          },
         });
       } else {
-        toast.error(errorMsg);
+        toast.error(errorMsg, {
+          style: {
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#ffffff' : '#1f2937',
+            border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
+            borderRadius: '12px',
+            fontWeight: '600',
+          },
+        });
       }
       setIsSubmitting(false);
     }
