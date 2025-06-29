@@ -236,7 +236,29 @@ service cloud.firestore {
       // Provide specific error messages based on Firebase error codes
       let errorMessage = 'Failed to process username';
       
-      if (err.code === 'permission-denied') {
+      if (err.code === 'auth/admin-restricted-operation') {
+        errorMessage = `
+🔒 FIREBASE AUTHENTICATION SETUP REQUIRED
+
+Anonymous authentication is not enabled in your Firebase project.
+
+TO FIX THIS:
+1. Go to Firebase Console (https://console.firebase.google.com)
+2. Select your project
+3. Navigate to Authentication → Sign-in method
+4. Find "Anonymous" in the list of providers
+5. Click on "Anonymous" and toggle "Enable"
+6. Click "Save"
+
+This will allow users to sign in anonymously and create accounts.
+
+ALTERNATIVE: If you prefer email/password authentication instead of anonymous:
+- Enable "Email/Password" provider in Firebase Console
+- Update the authentication code to use createUserWithEmailAndPassword()
+
+For now, please enable Anonymous authentication to use the current setup.
+        `;
+      } else if (err.code === 'permission-denied') {
         errorMessage = `
 🔒 FIRESTORE PERMISSIONS ERROR
 
