@@ -13,53 +13,22 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Validate that required config values are present and not placeholder values
+// Validate that required config values are present
 const requiredConfigKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-const missingKeys = requiredConfigKeys.filter(key => {
-  const value = firebaseConfig[key as keyof typeof firebaseConfig];
-  return !value || 
-         value === `your-${key.toLowerCase().replace(/([A-Z])/g, '-$1')}-here` || 
-         value?.toString().startsWith('your-') ||
-         value?.toString().startsWith('demo-');
-});
+const missingKeys = requiredConfigKeys.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig] || firebaseConfig[key as keyof typeof firebaseConfig] === `your-${key.toLowerCase().replace(/([A-Z])/g, '-$1')}-here` || firebaseConfig[key as keyof typeof firebaseConfig]?.toString().startsWith('your-'));
 
-// Check if we're in development mode with placeholder values
-const isUsingPlaceholderConfig = missingKeys.length > 0;
-
-if (isUsingPlaceholderConfig) {
-  console.warn('⚠️ Firebase is not configured with real project values.');
-  console.warn('To enable Firebase features:');
-  console.warn('1. Go to https://console.firebase.google.com/');
-  console.warn('2. Create a new project or select an existing one');
-  console.warn('3. Go to Project Settings > General > Your apps');
-  console.warn('4. Copy the configuration values to your .env file');
-  console.warn('5. Restart the development server');
+if (missingKeys.length > 0) {
+  console.error('Missing or invalid Firebase configuration values:', missingKeys);
+  console.error('Please update your .env file with actual Firebase project values from your Firebase console.');
 }
 
-// Initialize Firebase with error handling
-let app;
-let db;
-let auth;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-try {
-  if (!isUsingPlaceholderConfig) {
-    // Initialize Firebase only if we have real config values
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-  } else {
-    // Create mock objects for development
-    console.warn('Running in demo mode without Firebase connection');
-    app = null;
-    db = null;
-    auth = null;
-  }
-} catch (error) {
-  console.error('Failed to initialize Firebase:', error);
-  app = null;
-  db = null;
-  auth = null;
-}
+// Initialize Firestore
+export const db = getFirestore(app);
 
-export { db, auth };
+// Initialize Firebase Authentication
+export const auth = getAuth(app);
+
 export default app;
