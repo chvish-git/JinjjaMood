@@ -158,7 +158,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting authentication process for username:', trimmedUsername);
 
-      // Step 1: Check if username exists in Firestore
+      // Step 1: Ensure we have a Firebase Auth user first
+      let firebaseUser = currentUser;
+      if (!firebaseUser) {
+        console.log('🔵 DEBUG: No current Firebase user, signing in anonymously...');
+        const userCredential = await signInAnonymously(auth);
+        firebaseUser = userCredential.user;
+        console.log('✅ DEBUG: Firebase Auth successful, uid:', firebaseUser.uid);
+      }
+
+      // Step 2: Check if username exists in Firestore
       console.log('🔵 DEBUG: Checking if username exists...');
       const usernameQuery = query(
         collection(db, 'users'),
@@ -178,15 +187,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: 'Incorrect password. Please try again.' };
         }
         
-        console.log('✅ DEBUG: Password correct, signing in user...');
+        console.log('✅ DEBUG: Password correct, migrating user profile to current Firebase UID...');
         
-        // Sign in anonymously with Firebase Auth (if not already signed in)
-        if (!currentUser) {
-          const userCredential = await signInAnonymously(auth);
-          console.log('✅ DEBUG: Firebase Auth successful, uid:', userCredential.user.uid);
+        // Always migrate the user profile to the current Firebase Auth UID
+        // This ensures the UID in Firestore matches the Firebase Auth UID
+        const currentFirebaseUID = firebaseUser.uid;
+        const existingDocUID = userDoc.id;
+        
+        if (existingDocUID !== currentFirebaseUID) {
+          console.log('🔵 DEBUG: Migrating user profile from', existingDocUID, 'to', currentFirebaseUID);
           
-          // Update the user document with the new Firebase UID
-          await setDoc(doc(db, 'users', userCredential.user.uid), {
+          // Create new document with current Firebase UID
+          await setDoc(doc(db, 'users', currentFirebaseUID), {
             username: userData.username,
             name: userData.name,
             password: userData.password,
@@ -195,6 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Delete the old document
           await deleteDoc(userDoc.ref);
+          console.log('✅ DEBUG: User profile migration completed');
+        } else {
+          console.log('✅ DEBUG: User profile UID already matches Firebase Auth UID');
         }
         
         return { success: true, isNewUser: false };
@@ -202,14 +217,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Username doesn't exist - this is a signup attempt
         console.log('🔵 DEBUG: Username not found, creating new account...');
-        
-        // Sign in anonymously with Firebase Auth
-        const userCredential = await signInAnonymously(auth);
-        const user = userCredential.user;
-        console.log('✅ DEBUG: Firebase Auth successful, uid:', user.uid);
 
-        // Create new user profile with username and password
-        console.log('🔵 DEBUG: Creating new user profile');
+        // Create new user profile with current Firebase UID
+        console.log('🔵 DEBUG: Creating new user profile with UID:', firebaseUser.uid);
         const newUserProfile = {
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
@@ -217,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: serverTimestamp()
         };
         
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
         await setDoc(userDocRef, newUserProfile);
         console.log('✅ DEBUG: New user profile created successfully');
         
