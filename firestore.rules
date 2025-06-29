@@ -2,13 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Users collection - proper access control for user profiles
-    match /users/{username} {
+    match /users/{userId} {
       // Allow reading own profile - compare auth.uid with document ID
-      allow read: if request.auth != null && request.auth.uid == username;
+      allow read: if request.auth != null && request.auth.uid == userId;
       
       // Allow creating own profile during registration
       allow create: if request.auth != null && 
-                    request.auth.uid == username &&
+                    request.auth.uid == userId &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
@@ -19,7 +19,7 @@ service cloud.firestore {
       
       // Allow updating own profile
       allow update: if request.auth != null && 
-                    request.auth.uid == username &&
+                    request.auth.uid == userId &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
@@ -27,8 +27,11 @@ service cloud.firestore {
                     request.resource.data.name is string &&
                     request.resource.data.password is string;
       
-      // Allow deleting own profile
-      allow delete: if request.auth != null && request.auth.uid == username;
+      // Allow deleting own profile OR deleting old profile during migration
+      allow delete: if request.auth != null && 
+                    (request.auth.uid == userId ||
+                     (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == resource.data.username));
     }
     
     // Allow listing users collection for username uniqueness checks
