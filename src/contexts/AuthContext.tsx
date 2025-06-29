@@ -82,6 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadUserProfile = async (uid: string) => {
     try {
       console.log('🔵 DEBUG: Loading user profile for uid:', uid);
+      
+      // Ensure Firebase Auth token is established before Firestore read
+      if (auth.currentUser) {
+        console.log('🔵 DEBUG: Refreshing Firebase Auth token...');
+        await auth.currentUser.getIdToken(true);
+        console.log('✅ DEBUG: Firebase Auth token refreshed');
+      }
+      
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -166,6 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         firebaseUser = userCredential.user;
         console.log('✅ DEBUG: Firebase Auth successful, uid:', firebaseUser.uid);
       }
+
+      // Ensure Firebase Auth token is established before Firestore operations
+      console.log('🔵 DEBUG: Ensuring Firebase Auth token is established...');
+      await firebaseUser.getIdToken(true);
+      console.log('✅ DEBUG: Firebase Auth token confirmed');
 
       // Step 2: Check if username exists in Firestore
       console.log('🔵 DEBUG: Checking if username exists...');
@@ -288,6 +301,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Ensure Firebase Auth token is established
+      if (auth.currentUser) {
+        await auth.currentUser.getIdToken(true);
+      }
+
       // Check if new username is already taken
       const usernameQuery = query(
         collection(db, 'users'),
@@ -334,6 +352,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Ensure Firebase Auth token is established
+      await currentUser.getIdToken(true);
+
       // Delete all mood logs for this user
       const moodLogsQuery = query(
         collection(db, 'moodLogs'),
