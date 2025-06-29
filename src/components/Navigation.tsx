@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Heart, BarChart3, User, LogOut, Menu, X, Moon, Sun } from 'lucide-react';
+import { Home, Heart, BarChart3, User, LogOut, Menu, X, Moon, Sun, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Navigation: React.FC = () => {
@@ -63,6 +63,22 @@ export const Navigation: React.FC = () => {
             >
               <Heart size={18} />
               <span className="font-medium">Mood</span>
+            </Link>
+
+            <Link
+              to="/analytics"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 ${
+                isActive('/analytics')
+                  ? isDark 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-purple-100 text-purple-700'
+                  : isDark 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/10' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <TrendingUp size={18} />
+              <span className="font-medium">Analytics</span>
             </Link>
 
             <Link
@@ -164,6 +180,23 @@ export const Navigation: React.FC = () => {
               >
                 <Heart size={20} />
                 <span className="font-medium">Check Your Mood</span>
+              </Link>
+
+              <Link
+                to="/analytics"
+                onClick={() => setIsMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 ${
+                  isActive('/analytics')
+                    ? isDark 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-purple-100 text-purple-700'
+                    : isDark 
+                      ? 'text-gray-300 hover:text-white hover:bg-white/10' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <TrendingUp size={20} />
+                <span className="font-medium">Analytics Dashboard</span>
               </Link>
 
               <Link
