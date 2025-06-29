@@ -69,19 +69,24 @@ export const ProfilePage: React.FC = () => {
       const result = await updateUsername(newUsername.trim());
       
       if (result.success) {
-        toast.success('Username updated successfully! ✨', {
+        toast.success('New name, who dis?', {
           duration: 3000,
           style: {
             background: '#10B981',
             color: '#fff',
+            fontWeight: '600',
           },
         });
         setIsEditing(false);
       } else {
-        toast.error(result.error || 'Failed to update username');
+        toast.error(result.error || 'Username update failed. The servers are being moody.', {
+          style: { fontWeight: '600' }
+        });
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update username');
+      toast.error(error.message || 'Username update failed. The servers are being moody.', {
+        style: { fontWeight: '600' }
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -93,21 +98,26 @@ export const ProfilePage: React.FC = () => {
       const result = await deleteAccount();
       
       if (result.success) {
-        toast.success('Account deleted successfully. Goodbye! 👋', {
+        toast.success('All cleared. You were never here 👻', {
           duration: 4000,
           style: {
             background: '#EF4444',
             color: '#fff',
+            fontWeight: '600',
           },
         });
         // Navigate to home after deletion
         navigate('/');
       } else {
-        toast.error(result.error || 'Failed to delete account');
+        toast.error(result.error || 'Account deletion failed. The servers are being stubborn.', {
+          style: { fontWeight: '600' }
+        });
         setShowDeleteConfirm(false);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete account');
+      toast.error(error.message || 'Account deletion failed. The servers are being stubborn.', {
+        style: { fontWeight: '600' }
+      });
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
@@ -143,7 +153,7 @@ export const ProfilePage: React.FC = () => {
       }`}>
         <div className="text-center">
           <p className={`text-xl mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Please log in to view your profile.
+            You're not logged in. That's a problem.
           </p>
           <button
             onClick={() => navigate('/login')}

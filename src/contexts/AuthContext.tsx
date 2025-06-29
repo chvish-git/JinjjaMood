@@ -98,17 +98,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signup = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
-    // Validation
+    // Validation with witty messages
     if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Please enter a valid email address.' };
+      return { success: false, error: 'Don\'t ghost the email field. Fill it in, bestie.' };
     }
 
     if (!password || password.trim().length === 0) {
-      return { success: false, error: 'Please enter a password.' };
+      return { success: false, error: 'Don\'t ghost the password field. Fill it in, bestie.' };
     }
 
     if (!username || username.trim().length === 0) {
-      return { success: false, error: 'Please enter a username.' };
+      return { success: false, error: 'Don\'t ghost the username field. Fill it in, bestie.' };
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -117,37 +117,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Basic username validation
     if (trimmedUsername.length < 2) {
-      return { success: false, error: 'Username must be at least 2 characters long' };
+      return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
     }
     
     if (trimmedUsername.length > 20) {
-      return { success: false, error: 'Username must be 20 characters or less' };
+      return { success: false, error: 'Username\'s too long. Keep it snappy!' };
     }
     
     if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      return { success: false, error: 'Username can only contain letters, numbers, and underscores' };
+      return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
     }
 
     // Check for reserved usernames
     const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
     if (reservedNames.includes(trimmedUsername)) {
-      return { success: false, error: 'This username is reserved. Please choose another.' };
+      return { success: false, error: 'That username\'s off limits. Pick something more creative!' };
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      return { success: false, error: 'Please enter a valid email address.' };
+      return { success: false, error: 'That email looks sus. Double-check it?' };
     }
 
     // Basic password validation
     if (trimmedPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long.' };
+      return { success: false, error: 'Password needs at least 6 characters. Make it stronger!' };
     }
 
     // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'You are offline. Please connect to the internet to continue.' };
+      return { success: false, error: 'You\'re offline. Connect to the internet to join the vibe!' };
     }
 
     try {
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!usernameSnapshot.empty) {
         console.log('❌ DEBUG: Username already taken:', trimmedUsername);
-        return { success: false, error: 'Username already taken. Try logging in instead.' };
+        return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 
       // Step 2: Create Firebase account
@@ -195,19 +195,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('❌ DEBUG: Signup error:', err);
       
-      // Provide specific error messages based on Firebase error codes
-      let errorMessage = 'Failed to create account';
+      // Witty error messages based on Firebase error codes
+      let errorMessage = 'Something went sideways. Try again?';
       
       if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email already registered. Try logging in instead.';
+        errorMessage = 'This email\'s already in the system. You know what to do.';
       } else if (err.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
+        errorMessage = 'That password\'s weaker than decaf coffee. Beef it up!';
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address. Please check and try again.';
+        errorMessage = 'That email looks fake. Give us a real one!';
       } else if (err.code === 'permission-denied') {
-        errorMessage = 'Firestore permissions error. Please check your security rules.';
+        errorMessage = 'Permission denied. The vibes are off today.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Firebase connection failed. Please check your internet connection.';
+        errorMessage = 'Can\'t reach the servers. Check your internet and try again.';
       } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
@@ -220,13 +220,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Validation
+    // Validation with witty messages
     if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Please enter your email address.' };
+      return { success: false, error: 'Don\'t ghost the email field. Fill it in, bestie.' };
     }
 
     if (!password || password.trim().length === 0) {
-      return { success: false, error: 'Please enter your password.' };
+      return { success: false, error: 'Don\'t ghost the password field. Fill it in, bestie.' };
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -234,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'You are offline. Please connect to the internet to continue.' };
+      return { success: false, error: 'You\'re offline. Connect to the internet to get back in!' };
     }
 
     try {
@@ -254,7 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile = await getDoc(doc(db, 'users', user.uid));
       if (!userProfile.exists()) {
         console.log('⚠️ DEBUG: User profile not found');
-        return { success: false, error: 'Profile not found. Something went wrong.' };
+        return { success: false, error: 'Profile went missing. Something\'s broken.' };
       }
 
       const username = userProfile.data().username;
@@ -265,25 +265,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('❌ DEBUG: Login error:', err);
       
-      // Provide specific error messages based on Firebase error codes
-      let errorMessage = 'Failed to log in';
+      // Witty error messages based on Firebase error codes
+      let errorMessage = 'Login failed. Try again?';
       
       if (err.code === 'auth/user-not-found') {
-        errorMessage = 'Account not found. Sign up?';
+        errorMessage = 'Hmm. No account? Looks like you\'re tryna vibe without a ticket.';
       } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Try again.';
+        errorMessage = 'That\'s not the password, legend. Try again?';
       } else if (err.code === 'auth/invalid-credential') {
-        errorMessage = 'Account not found. Sign up?';
+        errorMessage = 'Hmm. No account? Looks like you\'re tryna vibe without a ticket.';
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address. Please check and try again.';
+        errorMessage = 'That email looks sus. Double-check it?';
       } else if (err.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled. Please contact support.';
+        errorMessage = 'Account\'s been disabled. Contact support if you think this is wrong.';
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
+        errorMessage = 'Too many tries. Chill for a bit and come back.';
       } else if (err.code === 'permission-denied') {
-        errorMessage = 'Firestore permissions error. Please check your security rules.';
+        errorMessage = 'Permission denied. The vibes are off today.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Firebase connection failed. Please check your internet connection.';
+        errorMessage = 'Can\'t reach the servers. Check your internet and try again.';
       } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
@@ -297,28 +297,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
     if (!userProfile?.uid) {
-      return { success: false, error: 'User not authenticated' };
+      return { success: false, error: 'You\'re not logged in. That\'s a problem.' };
     }
 
     const trimmedUsername = newUsername.trim().toLowerCase();
     
-    // Basic validation
+    // Basic validation with witty messages
     if (trimmedUsername.length < 2) {
-      return { success: false, error: 'Username must be at least 2 characters long' };
+      return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
     }
     
     if (trimmedUsername.length > 20) {
-      return { success: false, error: 'Username must be 20 characters or less' };
+      return { success: false, error: 'Username\'s too long. Keep it snappy!' };
     }
     
     if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      return { success: false, error: 'Username can only contain letters, numbers, and underscores' };
+      return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
     }
 
     // Check for reserved usernames
     const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
     if (reservedNames.includes(trimmedUsername)) {
-      return { success: false, error: 'This username is reserved. Please choose another.' };
+      return { success: false, error: 'That username\'s off limits. Pick something more creative!' };
     }
 
     try {
@@ -330,7 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const usernameSnapshot = await getDocs(usernameQuery);
       
       if (!usernameSnapshot.empty) {
-        return { success: false, error: 'Username already taken. Please choose another one.' };
+        return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 
       // Update user profile
@@ -363,13 +363,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     } catch (error: any) {
       console.error('Error updating username:', error);
-      return { success: false, error: error.message || 'Failed to update username' };
+      return { success: false, error: 'Username update failed. The servers are being moody.' };
     }
   };
 
   const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
     if (!userProfile?.uid || !currentUser) {
-      return { success: false, error: 'User not authenticated' };
+      return { success: false, error: 'You\'re not logged in. Can\'t delete what doesn\'t exist.' };
     }
 
     try {
@@ -401,7 +401,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     } catch (error: any) {
       console.error('Error deleting account:', error);
-      return { success: false, error: error.message || 'Failed to delete account' };
+      return { success: false, error: 'Account deletion failed. The servers are being stubborn.' };
     }
   };
 
@@ -426,7 +426,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🟡 DEBUG: setError(null) called');
       
       // Show friendly logout toast
-      toast.success('See you again soon! 👋', {
+      toast.success('Catch you later, moodster.', {
         duration: 3000,
         style: {
           background: '#10B981',
@@ -437,8 +437,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🟡 DEBUG: AuthContext logout() function completed');
     } catch (error) {
       console.error('❌ DEBUG: Error during logout:', error);
-      setError('Failed to sign out. Please try again.');
-      toast.error('Failed to sign out. Please try again.');
+      setError('Logout failed. The servers are being clingy.');
+      toast.error('Logout failed. The servers are being clingy.');
     }
   };
 

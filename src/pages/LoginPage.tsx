@@ -41,25 +41,25 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
-  // Real-time validation
+  // Real-time validation with witty messages
   const validateEmail = (email: string) => {
-    if (!email.trim()) return 'Email is required';
+    if (!email.trim()) return 'Don\'t ghost the email field. Fill it in, bestie.';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    if (!emailRegex.test(email)) return 'That email looks sus. Double-check it?';
     return '';
   };
 
   const validatePassword = (password: string) => {
-    if (!password.trim()) return 'Password is required';
-    if (password.length < 6) return 'Password must be at least 6 characters';
+    if (!password.trim()) return 'Don\'t ghost the password field. Fill it in, bestie.';
+    if (password.length < 6) return 'Password needs at least 6 characters. Make it stronger!';
     return '';
   };
 
   const validateUsername = (username: string) => {
-    if (!username.trim()) return 'Username is required';
-    if (username.length < 2) return 'Username must be at least 2 characters';
-    if (username.length > 20) return 'Username must be 20 characters or less';
-    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Only letters, numbers, and underscores allowed';
+    if (!username.trim()) return 'Don\'t ghost the username field. Fill it in, bestie.';
+    if (username.length < 2) return 'Username needs at least 2 characters. Give it some substance!';
+    if (username.length > 20) return 'Username\'s too long. Keep it snappy!';
+    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Username can only have letters, numbers, and underscores. Keep it clean!';
     return '';
   };
 
@@ -92,12 +92,13 @@ export const LoginPage: React.FC = () => {
         result = await signup(emailInput, passwordInput, usernameInput);
         
         if (result.success) {
-          setSuccessMessage(`Account created! Welcome, ${usernameInput}! 🎉`);
-          toast.success(`Welcome to JinjjaMood, ${usernameInput}! 🎉`, {
+          setSuccessMessage(`Mood locked in. Welcome, ${usernameInput}!`);
+          toast.success(`Mood locked in. Welcome, ${usernameInput}!`, {
             duration: 4000,
             style: {
               background: '#10B981',
               color: '#fff',
+              fontWeight: '600',
             },
           });
           
@@ -107,12 +108,20 @@ export const LoginPage: React.FC = () => {
           }, 1500);
         } else if (result.error) {
           setErrorMessage(result.error);
-          if (result.error.includes('Email already registered')) {
-            toast.error('Email already registered. Try logging in! 📧');
-          } else if (result.error.includes('Username already taken')) {
-            toast.error('Username taken. Try another! 📝');
+          
+          // Show specific toasts for different errors
+          if (result.error.includes('already in the system')) {
+            toast.error('This email\'s already in the system. You know what to do.', {
+              style: { fontWeight: '600' }
+            });
+          } else if (result.error.includes('already vibing with that name')) {
+            toast.error('Someone\'s already vibing with that name. Pick a new one?', {
+              style: { fontWeight: '600' }
+            });
           } else {
-            toast.error('Signup failed. Please try again.');
+            toast.error(result.error, {
+              style: { fontWeight: '600' }
+            });
           }
         }
       } else {
@@ -120,12 +129,13 @@ export const LoginPage: React.FC = () => {
         result = await login(emailInput, passwordInput);
         
         if (result.success) {
-          setSuccessMessage('Welcome back! 👋');
-          toast.success('Welcome back! 👋', {
+          setSuccessMessage('Back in the vibe zone.');
+          toast.success('Back in the vibe zone.', {
             duration: 3000,
             style: {
               background: '#8B5CF6',
               color: '#fff',
+              fontWeight: '600',
             },
           });
           
@@ -135,20 +145,30 @@ export const LoginPage: React.FC = () => {
           }, 1000);
         } else if (result.error) {
           setErrorMessage(result.error);
-          if (result.error.includes('No account found')) {
-            toast.error('No account found. Sign up? 📝');
-          } else if (result.error.includes('Incorrect password')) {
-            toast.error('Wrong password. Try again! 🔐');
+          
+          // Show specific toasts for different errors
+          if (result.error.includes('tryna vibe without a ticket')) {
+            toast.error('Hmm. No account? Looks like you\'re tryna vibe without a ticket.', {
+              style: { fontWeight: '600' }
+            });
+          } else if (result.error.includes('not the password')) {
+            toast.error('That\'s not the password, legend. Try again?', {
+              style: { fontWeight: '600' }
+            });
           } else {
-            toast.error('Login failed. Please try again.');
+            toast.error(result.error, {
+              style: { fontWeight: '600' }
+            });
           }
         }
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      const errorMsg = err.message || 'Something went wrong. Please try again.';
+      const errorMsg = err.message || 'Something went sideways. Try again?';
       setErrorMessage(errorMsg);
-      toast.error(errorMsg);
+      toast.error(errorMsg, {
+        style: { fontWeight: '600' }
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -202,10 +222,10 @@ export const LoginPage: React.FC = () => {
         <div className="text-center">
           <div className="text-6xl mb-4">✨</div>
           <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            You're already logged in!
+            You're already in the vibe zone!
           </h2>
           <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Redirecting you to your mood dashboard...
+            Taking you to your mood dashboard...
           </p>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
         </div>
@@ -356,7 +376,7 @@ export const LoginPage: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium mb-1">Error</p>
+                    <p className="font-medium mb-1">Oops!</p>
                     <p>{errorMessage}</p>
                   </div>
                 </div>
