@@ -29,7 +29,7 @@ service cloud.firestore {
                    request.resource.data.mood is string &&
                    request.resource.data.mood in ['Sad', 'Neutral', 'Good', 'Stressed', 'Hyped'] &&
                    request.resource.data.journalEntry is string &&
-                   request.resource.data.timestamp != null;
+                   request.resource.data.timestamp is timestamp;
     }
   }
 }
