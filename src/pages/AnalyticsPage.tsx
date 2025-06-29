@@ -11,19 +11,22 @@ import { MoodTrendChart } from '../components/charts/MoodTrendChart';
 import { WeeklyMoodChart } from '../components/charts/WeeklyMoodChart';
 import { MoodLog } from '../types/mood';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { AnalyticsSkeleton } from '../components/skeletons/AnalyticsSkeleton';
+import { AnalyticsEmptyState } from '../components/EmptyStates';
 
 type ViewMode = 'overview' | 'weekly' | 'monthly';
 type TimeRange = '7' | '30' | '90' | 'all';
 
 export const AnalyticsPage: React.FC = () => {
   const { userProfile } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [logs, setLogs] = useState<MoodLog[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeRange, setTimeRange] = useState<TimeRange>('30');
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [isDark] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,46 +85,11 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Analyzing your vibes...
-          </p>
-        </div>
-      </div>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   if (logs.length === 0) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            No analytics yet
-          </h2>
-          <p className={`text-lg mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Start logging your moods to see beautiful insights!
-          </p>
-          <button
-            onClick={() => navigate('/mood')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:scale-105 transition-transform duration-300"
-          >
-            Start Tracking
-          </button>
-        </div>
-      </div>
-    );
+    return <AnalyticsEmptyState />;
   }
 
   return (

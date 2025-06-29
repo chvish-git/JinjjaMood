@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Edit3, Trash2, Check, X, Calendar, Award, TrendingUp, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { getMoodLogs } from '../utils/storage';
 import { calculateMoodStats } from '../utils/moodAnalysis';
 import { MoodLog } from '../types/mood';
+import { ProfileSkeleton } from '../components/skeletons/ProfileSkeleton';
 import toast from 'react-hot-toast';
 
 export const ProfilePage: React.FC = () => {
   const { userProfile, updateUsername, deleteAccount, logout } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -19,7 +22,6 @@ export const ProfilePage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [isDark] = useState(false); // You can implement theme context later
 
   useEffect(() => {
     setIsVisible(true);
@@ -129,20 +131,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Loading your profile...
-          </p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!userProfile) {

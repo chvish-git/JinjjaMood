@@ -6,9 +6,13 @@ import { getPersonalizedQuote, getDailyTheme, getThemeEmoji } from '../data/vibe
 import { MoodLog } from '../types/mood';
 import { VibeQuote } from '../types/vibeQuote';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { ResultsSkeleton } from '../components/skeletons/ResultsSkeleton';
+import { ResultsEmptyState } from '../components/EmptyStates';
 
 export const ResultsPage: React.FC = () => {
   const { userProfile } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
@@ -16,7 +20,6 @@ export const ResultsPage: React.FC = () => {
   const [dailyTheme, setDailyTheme] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isDark] = useState(false); // You can implement theme context later
 
   useEffect(() => {
     const loadData = async () => {
@@ -80,42 +83,11 @@ export const ResultsPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className={`text-xl ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Loading your vibe...
-          </p>
-        </div>
-      </div>
-    );
+    return <ResultsSkeleton />;
   }
 
   if (!latestLog) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center pt-16 ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <p className={`text-xl mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            No mood logs found. Let's start tracking!
-          </p>
-          <button
-            onClick={() => navigate('/mood')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:scale-105 transition-transform duration-300"
-          >
-            Check In Now
-          </button>
-        </div>
-      </div>
-    );
+    return <ResultsEmptyState />;
   }
 
   return (
