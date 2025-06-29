@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Moon, Sun, LogIn } from 'lucide-react';
 import { AuthGuard } from './components/AuthGuard';
 import { UserProfile } from './components/UserProfile';
 import { MoodCheck } from './pages/MoodCheck';
@@ -22,7 +22,7 @@ function App() {
   const [currentMemeIndex, setCurrentMemeIndex] = useState(0);
   const [isDark, setIsDark] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { userProfile } = useAuth();
+  const { userProfile, isAuthenticated } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
@@ -56,6 +56,12 @@ function App() {
 
   const toggleTheme = () => {
     setIsDark(!isDark);
+  };
+
+  const handleLoginClick = () => {
+    // In a real app with routing, this would navigate to /login
+    // For now, the AuthGuard will handle showing the LoginPage
+    console.log('Login clicked - AuthGuard will handle this');
   };
 
   return (
@@ -152,8 +158,24 @@ function App() {
             }`}></div>
           </div>
 
-          {/* User Profile */}
-          <UserProfile isDark={isDark} />
+          {/* Conditional Header - Show User Profile if authenticated, Login button if not */}
+          {isAuthenticated && userProfile ? (
+            <UserProfile isDark={isDark} />
+          ) : (
+            <div className="absolute top-6 left-6 z-10">
+              <button
+                onClick={handleLoginClick}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${
+                  isDark 
+                    ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
+                    : 'bg-black/10 text-gray-800 hover:bg-black/20 border border-gray-200'
+                }`}
+              >
+                <LogIn size={18} />
+                <span className="text-sm font-medium">Login</span>
+              </button>
+            </div>
+          )}
 
           {/* Theme toggle */}
           <div className="absolute top-6 right-6 z-10">
@@ -201,31 +223,67 @@ function App() {
               </p>
             </div>
 
-            {/* CTA Button */}
-            <div className={`transform transition-all duration-1000 delay-500 ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-            }`}>
-              <button
-                onClick={handleStartJourney}
-                className={`group relative px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
-                  isDark 
-                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  Start the Jinjja Journey
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
-                </span>
-                
-                {/* Glow effect */}
-                <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 blur-xl' 
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600 blur-xl'
-                }`}></div>
-              </button>
-            </div>
+            {/* CTA Button - Only show if authenticated */}
+            {isAuthenticated && (
+              <div className={`transform transition-all duration-1000 delay-500 ${
+                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+              }`}>
+                <button
+                  onClick={handleStartJourney}
+                  className={`group relative px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    Start the Jinjja Journey
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+                  </span>
+                  
+                  {/* Glow effect */}
+                  <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 blur-xl' 
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 blur-xl'
+                  }`}></div>
+                </button>
+              </div>
+            )}
+
+            {/* Welcome message for non-authenticated users */}
+            {!isAuthenticated && (
+              <div className={`text-center transform transition-all duration-1000 delay-500 ${
+                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+              }`}>
+                <p className={`text-lg md:text-xl mb-6 ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Ready to track your real vibes?
+                </p>
+                <button
+                  onClick={handleLoginClick}
+                  className={`group relative px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <LogIn size={20} />
+                    Get Started
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+                  </span>
+                  
+                  {/* Glow effect */}
+                  <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 blur-xl' 
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 blur-xl'
+                  }`}></div>
+                </button>
+              </div>
+            )}
 
             {/* Footer */}
             <div className={`absolute bottom-6 text-center transform transition-all duration-1000 delay-700 ${

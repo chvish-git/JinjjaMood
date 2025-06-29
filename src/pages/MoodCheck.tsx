@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import toast from 'react-hot-toast';
 import { MoodSelector } from '../components/MoodSelector';
 import { JournalInput } from '../components/JournalInput';
 import { UserProfile } from '../components/UserProfile';
@@ -31,11 +32,13 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
     // TC-MOOD-002: Missing mood value validation
     if (!selectedMood) {
       setErrorMessage('Please select a mood.');
+      toast.error('Please select a mood first! 💭');
       return;
     }
 
     if (!userProfile?.uid) {
       setErrorMessage('Authentication error. Please try logging in again.');
+      toast.error('Authentication error. Please try again.');
       return;
     }
 
@@ -51,6 +54,15 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
         timestamp: new Date()
       }, userProfile.uid);
 
+      // Show success toast
+      toast.success(`${selectedMood} mood logged! ✨`, {
+        duration: 2000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+        },
+      });
+
       // Trigger confetti
       confetti({
         particleCount: 100,
@@ -63,9 +75,11 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ isDark, onBack, onSubmit, 
       setTimeout(() => {
         onSubmit();
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving mood log:', error);
-      setErrorMessage('Failed to save mood log. Please try again.');
+      const errorMsg = error.message || 'Failed to save mood log. Please try again.';
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
       setIsSubmitting(false);
     }
   };

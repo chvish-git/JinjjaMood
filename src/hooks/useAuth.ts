@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
+import toast from 'react-hot-toast';
 
 interface UserProfile {
   uid: string;
@@ -27,9 +28,28 @@ export const useAuth = () => {
         // User is signed in, load their profile
         await loadUserProfile(user.uid);
       } else {
-        // User is signed out
-        setUserProfile(null);
-        setLoading(false);
+        // User is signed out, check for auto-login
+        const storedUser = localStorage.getItem('jinjjamood_currentUser');
+        if (storedUser) {
+          console.log('🔵 DEBUG: Found stored user, attempting auto-login');
+          try {
+            const userData = JSON.parse(storedUser);
+            // Attempt to sign in anonymously and restore session
+            const userCredential = await signInAnonymously(auth);
+            if (userCredential.user) {
+              // Try to load the stored profile
+              await loadUserProfile(userCredential.user.uid);
+            }
+          } catch (error) {
+            console.error('❌ DEBUG: Auto-login failed:', error);
+            localStorage.removeItem('jinjjamood_currentUser');
+            setUserProfile(null);
+            setLoading(false);
+          }
+        } else {
+          setUserProfile(null);
+          setLoading(false);
+        }
       }
     });
 
@@ -44,16 +64,22 @@ export const useAuth = () => {
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        setUserProfile({
+        const profile = {
           uid: uid,
           username: data.username,
           name: data.name,
           createdAt: data.createdAt.toDate()
-        });
+        };
+        setUserProfile(profile);
+        
+        // Store user profile in localStorage for auto-login
+        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
+        
         console.log('✅ DEBUG: User profile loaded successfully');
       } else {
         console.log('⚠️ DEBUG: User document does not exist in Firestore');
         setUserProfile(null);
+        localStorage.removeItem('jinjjamood_currentUser');
       }
     } catch (err: any) {
       console.error('❌ DEBUG: Error loading user profile:', err);
@@ -163,12 +189,16 @@ service cloud.firestore {
         // User profile exists - this is a returning user
         console.log('✅ DEBUG: Existing user profile found');
         const userData = existingUser.data();
-        setUserProfile({
+        const profile = {
           uid: user.uid,
           username: userData.username,
           name: userData.name,
           createdAt: userData.createdAt.toDate()
-        });
+        };
+        setUserProfile(profile);
+        
+        // Store user profile in localStorage for auto-login
+        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
         
         return { success: true, isNewUser: false };
       } else {
@@ -184,12 +214,16 @@ service cloud.firestore {
         console.log('✅ DEBUG: New user profile created successfully');
         
         // Set user profile
-        setUserProfile({
+        const profile = {
           uid: user.uid,
           username: trimmedUsername,
           name: trimmedUsername,
           createdAt: new Date()
-        });
+        };
+        setUserProfile(profile);
+        
+        // Store user profile in localStorage for auto-login
+        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
         
         return { success: true, isNewUser: true };
       }
@@ -239,6 +273,10 @@ See the browser console for detailed instructions.
     console.log('🟡 DEBUG: Current firebaseUser before clearing:', firebaseUser?.uid);
     
     try {
+      // Clear localStorage first
+      localStorage.removeItem('jinjjamood_currentUser');
+      console.log('🟡 DEBUG: localStorage cleared');
+      
       // Sign out from Firebase Auth
       await signOut(auth);
       console.log('✅ DEBUG: Firebase signOut successful');
@@ -251,10 +289,20 @@ See the browser console for detailed instructions.
       setError(null);
       console.log('🟡 DEBUG: setError(null) called');
       
+      // Show friendly logout toast
+      toast.success('See you again soon! 👋', {
+        duration: 3000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+        },
+      });
+      
       console.log('🟡 DEBUG: useAuth logout() function completed');
     } catch (error) {
       console.error('❌ DEBUG: Error during logout:', error);
       setError('Failed to sign out. Please try again.');
+      toast.error('Failed to sign out. Please try again.');
     }
   };
 

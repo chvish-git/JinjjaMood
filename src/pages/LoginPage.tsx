@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
-  const { checkUsernameAndCreateOrLogin, loading } = useAuth();
+  const { checkUsernameAndCreateOrLogin, loading, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -12,7 +13,14 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    
+    // Redirect if already logged in (auto-login protection)
+    if (isAuthenticated) {
+      console.log('🔄 DEBUG: User already authenticated, would redirect to home');
+      // Note: In a real app with routing, you'd redirect here
+      // For now, the AuthGuard handles this by not showing LoginPage
+    }
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,16 +34,33 @@ export const LoginPage: React.FC = () => {
       if (result.success) {
         if (result.isNewUser) {
           setSuccessMessage('Account created successfully! Welcome to JinjjaMood! 🎉');
+          toast.success('Welcome to JinjjaMood! 🎉', {
+            duration: 4000,
+            style: {
+              background: '#10B981',
+              color: '#fff',
+            },
+          });
         } else {
           setSuccessMessage('Welcome back! 👋');
+          toast.success('Welcome back! 👋', {
+            duration: 3000,
+            style: {
+              background: '#8B5CF6',
+              color: '#fff',
+            },
+          });
         }
         // The useAuth hook will automatically update and redirect to home
       } else if (result.error) {
         setErrorMessage(result.error);
+        toast.error('Login failed. Please try again.');
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setErrorMessage(err.message || 'Something went wrong. Please try again.');
+      const errorMsg = err.message || 'Something went wrong. Please try again.';
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -49,6 +74,24 @@ export const LoginPage: React.FC = () => {
   };
 
   const isButtonDisabled = isProcessing || loading || usernameInput.length < 2;
+
+  // If user is already authenticated, show a different message
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">✨</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            You're already logged in!
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Redirecting you to your mood dashboard...
+          </p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100">
