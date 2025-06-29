@@ -72,11 +72,19 @@ export const MoodCheckPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      await saveMoodLog({
+      console.log('🔵 DEBUG: Attempting to save mood log:', {
+        mood: selectedMood,
+        journalEntry: journalEntry.trim(),
+        uid: userProfile.uid
+      });
+
+      const savedLog = await saveMoodLog({
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
         timestamp: new Date()
       }, userProfile.uid);
+
+      console.log('✅ DEBUG: Mood log saved successfully:', savedLog);
 
       // Get mood-specific feedback
       const feedback = getMoodFeedback(selectedMood);
@@ -111,7 +119,7 @@ export const MoodCheckPage: React.FC = () => {
         navigate('/results');
       }, 1500);
     } catch (error: any) {
-      console.error('Error saving mood log:', error);
+      console.error('❌ DEBUG: Error saving mood log:', error);
       const errorMsg = error.message || 'Failed to save mood log. Please try again.';
       setErrorMessage(errorMsg);
       
@@ -272,7 +280,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Enhanced Submit Button */}
+        {/* Smaller Submit Button */}
         {!hasReachedLimit && (
           <div className={`transform transition-all duration-1000 delay-700 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -280,29 +288,29 @@ export const MoodCheckPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || hasReachedLimit || !selectedMood}
-              className={`group relative px-10 py-5 text-heading font-bold rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+              className={`group relative px-6 py-3 text-base font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
                 selectedMood && !hasReachedLimit
-                  ? 'btn-primary animate-pulse-glow' 
+                  ? 'btn-primary' 
                   : 'bg-gray-400 text-gray-600 cursor-not-allowed'
               }`}
             >
-              <span className="flex items-center gap-3 relative z-10">
+              <span className="flex items-center gap-2 relative z-10">
                 {isSubmitting ? (
                   <>
-                    <Sparkles size={24} className="animate-spin" />
-                    <span>Saving your vibe...</span>
+                    <Sparkles size={18} className="animate-spin" />
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
                     <span>Log Mood ({dailyCount + 1}/{DAILY_MOOD_LIMIT})</span>
-                    <Send size={24} className="group-hover:translate-x-1 transition-transform duration-300" />
+                    <Send size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </span>
               
               {/* Enhanced glow effect */}
               {selectedMood && !hasReachedLimit && (
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
+                <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
               )}
             </button>
           </div>
