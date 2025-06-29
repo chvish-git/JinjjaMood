@@ -1,33 +1,52 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - using username as document ID
-    match /users/{username} {
-      // Allow reading any user profile for username uniqueness checks
-      allow read: if request.auth != null;
+    // Users collection - using UID as document ID
+    match /users/{userId} {
+      // Allow reading own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
       
-      // Allow creating new user document
+      // Allow creating own profile during signup
       allow create: if request.auth != null && 
-                    request.auth.uid == request.resource.data.uid &&
+                    request.auth.uid == userId &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
                     request.resource.data.username.matches('^[a-z0-9_]+$') &&
-                    request.resource.data.password is string &&
+                    request.resource.data.email is string &&
+                    request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
                     request.resource.data.createdAt != null;
       
-      // Allow updating own user document
+      // Allow updating own profile
       allow update: if request.auth != null && 
-                    request.auth.uid == request.resource.data.uid &&
+                    request.auth.uid == userId &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
                     request.resource.data.username.matches('^[a-z0-9_]+$') &&
-                    request.resource.data.password is string;
+                    request.resource.data.email is string &&
+                    request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
       
-      // Allow deleting own user document
+      // Allow deleting own profile
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Username reservations collection - for checking username availability
+    match /usernames/{username} {
+      // Allow reading for username uniqueness checks
+      allow read: if request.auth != null;
+      
+      // Allow creating username reservation during signup
+      allow create: if request.auth != null && 
+                    request.resource.data.uid == request.auth.uid;
+      
+      // Allow updating own username reservation
+      allow update: if request.auth != null && 
+                    request.resource.data.uid == request.auth.uid;
+      
+      // Allow deleting own username reservation
       allow delete: if request.auth != null && 
-                    request.auth.uid == resource.data.uid;
+                    resource.data.uid == request.auth.uid;
     }
     
     // Mood logs collection - secure per-user access with expanded mood validation

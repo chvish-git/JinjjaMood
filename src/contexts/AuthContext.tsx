@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { getAuth, signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
 import toast from 'react-hot-toast';
 
 interface UserProfile {
   uid: string;
   username: string;
-  password: string; // For demo purposes - plain text (NOT for production)
+  email: string;
   createdAt: Date;
 }
 
@@ -17,7 +17,8 @@ interface AuthContextType {
   loading: boolean;
   authLoading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string; isNewUser?: boolean }>;
+  signup: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
@@ -49,22 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       
       if (user) {
-        // User is signed in, try to load their profile from localStorage first
-        const storedProfile = localStorage.getItem('jinjjamood_currentUser');
-        if (storedProfile) {
-          try {
-            const profileData = JSON.parse(storedProfile);
-            console.log('🔵 DEBUG: Found stored profile, loading from Firestore:', profileData.username);
-            await loadUserProfileByUsername(profileData.username);
-          } catch (error) {
-            console.error('❌ DEBUG: Error parsing stored profile:', error);
-            localStorage.removeItem('jinjjamood_currentUser');
-            setUserProfile(null);
-          }
-        } else {
-          console.log('🔵 DEBUG: No stored profile found');
-          setUserProfile(null);
-        }
+        // User is signed in, load their profile
+        await loadUserProfile(user.uid);
       } else {
         // User is signed out
         setUserProfile(null);
@@ -77,28 +64,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loadUserProfileByUsername = async (username: string) => {
+  const loadUserProfile = async (uid: string) => {
     try {
-      console.log('🔵 DEBUG: Loading user profile for username:', username);
+      console.log('🔵 DEBUG: Loading user profile for uid:', uid);
       
-      // Get user document using username as document ID
-      const userDocRef = doc(db, 'users', username);
+      // Get user document using UID
+      const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
         const profile = {
-          uid: data.uid,
-          username: data.username || username, // Fallback to document ID
-          password: data.password,
+          uid: uid,
+          username: data.username,
+          email: data.email,
           createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date()
         };
         setUserProfile(profile);
         
-        // Store user profile in localStorage (excluding password for security)
-        const profileForStorage = { ...profile };
-        delete profileForStorage.password;
-        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profileForStorage));
+        // Store user profile in localStorage
+        localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profile));
         
         console.log('✅ DEBUG: User profile loaded successfully');
       } else {
@@ -112,18 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> => {
+  const signup = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
     // Validation
-    if (!username || username.trim().length === 0) {
-      return { success: false, error: 'Please enter a valid username.' };
+    if (!email || email.trim().length === 0) {
+      return { success: false, error: 'Please enter a valid email address.' };
     }
 
     if (!password || password.trim().length === 0) {
       return { success: false, error: 'Please enter a password.' };
     }
 
-    const trimmedUsername = username.trim().toLowerCase();
+    if (!username || username.trim().length === 0) {
+      return { success: false, error: 'Please enter a username.' };
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
+    const trimmedUsername = username.trim().toLowerCase();
     
     // Basic username validation
     if (trimmedUsername.length < 2) {
@@ -144,6 +134,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'This username is reserved. Please choose another.' };
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    // Basic password validation
+    if (trimmedPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
+
     // Check network connectivity
     if (!navigator.onLine) {
       return { success: false, error: 'You are offline. Please connect to the internet to continue.' };
@@ -153,84 +154,134 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       setLoading(true);
       
-      console.log('🔵 DEBUG: Starting authentication process for username:', trimmedUsername);
+      console.log('🔵 DEBUG: Starting signup process for username:', trimmedUsername);
 
-      // Step 1: Sign in anonymously to get Firebase Auth user
-      console.log('🔵 DEBUG: Signing in anonymously...');
-      const userCredential = await signInAnonymously(auth);
-      const firebaseUser = userCredential.user;
-      console.log('✅ DEBUG: Firebase Auth successful, uid:', firebaseUser.uid);
-
-      // Ensure Firebase Auth token is established before Firestore operations
-      console.log('🔵 DEBUG: Ensuring Firebase Auth token is established...');
-      await firebaseUser.getIdToken(true);
-      console.log('✅ DEBUG: Firebase Auth token confirmed');
-
-      // Step 2: Check if username exists in Firestore using document ID
-      console.log('🔵 DEBUG: Checking if username exists...');
-      const userDocRef = doc(db, 'users', trimmedUsername);
-      const userDoc = await getDoc(userDocRef);
+      // Step 1: Check if username is already taken
+      console.log('🔵 DEBUG: Checking if username is available...');
+      const usernameQuery = query(
+        collection(db, 'usernames'),
+        where('username', '==', trimmedUsername)
+      );
+      const usernameSnapshot = await getDocs(usernameQuery);
       
-      if (userDoc.exists()) {
-        // Username exists - this is a login attempt
-        console.log('🔵 DEBUG: Username found, attempting login...');
-        const userData = userDoc.data();
-        
-        // Check password
-        if (userData.password !== trimmedPassword) {
-          console.log('❌ DEBUG: Incorrect password for username:', trimmedUsername);
-          return { success: false, error: 'Incorrect password. Please try again.' };
-        }
-        
-        console.log('✅ DEBUG: Password correct, updating user profile with current Firebase UID...');
-        
-        // Update the document with current Firebase UID (in case it changed)
-        await setDoc(userDocRef, {
-          uid: firebaseUser.uid,
-          username: trimmedUsername,
-          password: userData.password,
-          createdAt: userData.createdAt
-        });
-        
-        console.log('✅ DEBUG: User profile updated with current Firebase UID');
-        
-        return { success: true, isNewUser: false };
-        
-      } else {
-        // Username doesn't exist - this is a signup attempt
-        console.log('🔵 DEBUG: Username not found, creating new account...');
-
-        // Create new user profile with username as document ID
-        console.log('🔵 DEBUG: Creating new user profile with username:', trimmedUsername);
-        const newUserProfile = {
-          uid: firebaseUser.uid,
-          username: trimmedUsername,
-          password: trimmedPassword, // Storing plain text for demo (NOT for production)
-          createdAt: serverTimestamp()
-        };
-        
-        await setDoc(userDocRef, newUserProfile);
-        console.log('✅ DEBUG: New user profile created successfully');
-        
-        return { success: true, isNewUser: true };
+      if (!usernameSnapshot.empty) {
+        console.log('❌ DEBUG: Username already taken:', trimmedUsername);
+        return { success: false, error: 'Username already taken. Try logging in instead.' };
       }
+
+      // Step 2: Create Firebase account
+      console.log('🔵 DEBUG: Creating Firebase account...');
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+      const user = userCredential.user;
+      console.log('✅ DEBUG: Firebase account created, uid:', user.uid);
+
+      // Step 3: Save user profile
+      console.log('🔵 DEBUG: Saving user profile...');
+      await setDoc(doc(db, 'users', user.uid), {
+        username: trimmedUsername,
+        email: trimmedEmail,
+        createdAt: serverTimestamp()
+      });
+
+      // Step 4: Reserve the username
+      console.log('🔵 DEBUG: Reserving username...');
+      await setDoc(doc(db, 'usernames', trimmedUsername), {
+        uid: user.uid
+      });
+
+      console.log('✅ DEBUG: Signup completed successfully');
+      return { success: true };
       
     } catch (err: any) {
-      console.error('❌ DEBUG: Authentication error:', err);
+      console.error('❌ DEBUG: Signup error:', err);
       
       // Provide specific error messages based on Firebase error codes
-      let errorMessage = 'Failed to process login';
+      let errorMessage = 'Failed to create account';
       
-      if (err.code === 'auth/admin-restricted-operation') {
-        errorMessage = 'Anonymous authentication is not enabled in your Firebase project. Please enable it in the Firebase Console.';
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email already registered. Try logging in instead.';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check and try again.';
       } else if (err.code === 'permission-denied') {
         errorMessage = 'Firestore permissions error. Please check your security rules.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
         errorMessage = 'Firebase connection failed. Please check your internet connection.';
-      } else if (err.code === 'not-found') {
-        errorMessage = 'Firebase project not found. Please verify your project configuration.';
-      } else if (err.code === 'invalid-argument') {
-        errorMessage = 'Invalid Firebase configuration. Please check your project settings.';
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    // Validation
+    if (!email || email.trim().length === 0) {
+      return { success: false, error: 'Please enter your email address.' };
+    }
+
+    if (!password || password.trim().length === 0) {
+      return { success: false, error: 'Please enter your password.' };
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
+    // Check network connectivity
+    if (!navigator.onLine) {
+      return { success: false, error: 'You are offline. Please connect to the internet to continue.' };
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
+
+      // Step 1: Sign in with email and password
+      console.log('🔵 DEBUG: Signing in with email and password...');
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+      const user = userCredential.user;
+      console.log('✅ DEBUG: Firebase login successful, uid:', user.uid);
+
+      // Step 2: Fetch username (optional, but good for UX)
+      console.log('🔵 DEBUG: Fetching user profile...');
+      const userProfile = await getDoc(doc(db, 'users', user.uid));
+      if (!userProfile.exists()) {
+        console.log('⚠️ DEBUG: User profile not found');
+        return { success: false, error: 'Profile not found. Something went wrong.' };
+      }
+
+      const username = userProfile.data().username;
+      console.log('✅ DEBUG: Login completed successfully for username:', username);
+      
+      return { success: true };
+      
+    } catch (err: any) {
+      console.error('❌ DEBUG: Login error:', err);
+      
+      // Provide specific error messages based on Firebase error codes
+      let errorMessage = 'Failed to log in';
+      
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found. Sign up?';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Try again.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check and try again.';
+      } else if (err.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled. Please contact support.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (err.code === 'permission-denied') {
+        errorMessage = 'Firestore permissions error. Please check your security rules.';
+      } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
+        errorMessage = 'Firebase connection failed. Please check your internet connection.';
       } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
@@ -243,7 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.username) {
+    if (!userProfile?.uid) {
       return { success: false, error: 'User not authenticated' };
     }
 
@@ -269,30 +320,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Ensure Firebase Auth token is established
-      if (auth.currentUser) {
-        await auth.currentUser.getIdToken(true);
-      }
-
       // Check if new username is already taken
-      const newUserDocRef = doc(db, 'users', trimmedUsername);
-      const newUserDoc = await getDoc(newUserDocRef);
+      const usernameQuery = query(
+        collection(db, 'usernames'),
+        where('username', '==', trimmedUsername)
+      );
+      const usernameSnapshot = await getDocs(usernameQuery);
       
-      if (newUserDoc.exists()) {
+      if (!usernameSnapshot.empty) {
         return { success: false, error: 'Username already taken. Please choose another one.' };
       }
 
-      // Create new document with new username
-      await setDoc(newUserDocRef, {
-        uid: userProfile.uid,
+      // Update user profile
+      const userDocRef = doc(db, 'users', userProfile.uid);
+      await setDoc(userDocRef, {
         username: trimmedUsername,
-        password: userProfile.password,
+        email: userProfile.email,
         createdAt: userProfile.createdAt
       });
 
-      // Delete old document
-      const oldUserDocRef = doc(db, 'users', userProfile.username);
-      await deleteDoc(oldUserDocRef);
+      // Delete old username reservation
+      const oldUsernameDocRef = doc(db, 'usernames', userProfile.username);
+      await deleteDoc(oldUsernameDocRef);
+
+      // Create new username reservation
+      await setDoc(doc(db, 'usernames', trimmedUsername), {
+        uid: userProfile.uid
+      });
 
       // Update local state
       const updatedProfile = {
@@ -301,10 +355,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUserProfile(updatedProfile);
       
-      // Update localStorage (excluding password)
-      const profileForStorage = { ...updatedProfile };
-      delete profileForStorage.password;
-      localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profileForStorage));
+      // Update localStorage
+      localStorage.setItem('jinjjamood_currentUser', JSON.stringify(updatedProfile));
 
       return { success: true };
     } catch (error: any) {
@@ -314,14 +366,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.username || !currentUser) {
+    if (!userProfile?.uid || !currentUser) {
       return { success: false, error: 'User not authenticated' };
     }
 
     try {
-      // Ensure Firebase Auth token is established
-      await currentUser.getIdToken(true);
-
       // Delete all mood logs for this user
       const moodLogsQuery = query(
         collection(db, 'moodLogs'),
@@ -332,16 +381,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const deletePromises = moodLogsSnapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
 
-      // Delete user profile from Firestore using username as document ID
-      const userDocRef = doc(db, 'users', userProfile.username);
+      // Delete username reservation
+      const usernameDocRef = doc(db, 'usernames', userProfile.username);
+      await deleteDoc(usernameDocRef);
+
+      // Delete user profile from Firestore
+      const userDocRef = doc(db, 'users', userProfile.uid);
       await deleteDoc(userDocRef);
       
       // Clear local state
       setUserProfile(null);
       localStorage.removeItem('jinjjamood_currentUser');
       
-      // Sign out from Firebase Auth
-      await signOut(auth);
+      // Delete Firebase Auth account
+      await currentUser.delete();
       
       return { success: true };
     } catch (error: any) {
@@ -395,6 +448,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     authLoading,
     error,
+    signup,
     login,
     logout,
     updateUsername,

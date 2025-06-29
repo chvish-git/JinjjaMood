@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
-  const { login, loading, isAuthenticated } = useAuth();
+  const { signup, login, loading, isAuthenticated } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
-  const [usernameInput, setUsernameInput] = useState('');
+  const [isSignupMode, setIsSignupMode] = useState(false);
+  
+  // Form inputs
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // UI state
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
-    username?: string;
+    email?: string;
     password?: string;
+    username?: string;
   }>({});
 
   // Get the intended destination from location state
@@ -35,16 +42,24 @@ export const LoginPage: React.FC = () => {
   }, [isAuthenticated, navigate, from]);
 
   // Real-time validation
-  const validateUsername = (username: string) => {
-    if (!username.trim()) return 'Username is required';
-    if (username.length < 2) return 'Username must be at least 2 characters';
-    if (username.length > 20) return 'Username must be 20 characters or less';
-    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Only letters, numbers, and underscores allowed';
+  const validateEmail = (email: string) => {
+    if (!email.trim()) return 'Email is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
     return '';
   };
 
   const validatePassword = (password: string) => {
     if (!password.trim()) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    return '';
+  };
+
+  const validateUsername = (username: string) => {
+    if (!username.trim()) return 'Username is required';
+    if (username.length < 2) return 'Username must be at least 2 characters';
+    if (username.length > 20) return 'Username must be 20 characters or less';
+    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Only letters, numbers, and underscores allowed';
     return '';
   };
 
@@ -55,32 +70,56 @@ export const LoginPage: React.FC = () => {
     setIsProcessing(true);
     
     // Validate inputs
-    const usernameError = validateUsername(usernameInput);
+    const emailError = validateEmail(emailInput);
     const passwordError = validatePassword(passwordInput);
+    const usernameError = isSignupMode ? validateUsername(usernameInput) : '';
     
-    if (usernameError || passwordError) {
+    if (emailError || passwordError || usernameError) {
       setValidationErrors({
-        username: usernameError,
-        password: passwordError
+        email: emailError,
+        password: passwordError,
+        username: usernameError
       });
       setIsProcessing(false);
       return;
     }
     
     try {
-      const result = await login(usernameInput, passwordInput);
+      let result;
       
-      if (result.success) {
-        if (result.isNewUser) {
-          setSuccessMessage('Account created successfully! Welcome to JinjjaMood! 🎉');
-          toast.success('Welcome to JinjjaMood! 🎉', {
+      if (isSignupMode) {
+        console.log('🔵 DEBUG: Attempting signup...');
+        result = await signup(emailInput, passwordInput, usernameInput);
+        
+        if (result.success) {
+          setSuccessMessage(`Account created! Welcome, ${usernameInput}! 🎉`);
+          toast.success(`Welcome to JinjjaMood, ${usernameInput}! 🎉`, {
             duration: 4000,
             style: {
               background: '#10B981',
               color: '#fff',
             },
           });
-        } else {
+          
+          // Navigate to intended destination
+          setTimeout(() => {
+            navigate(from, { replace: true });
+          }, 1500);
+        } else if (result.error) {
+          setErrorMessage(result.error);
+          if (result.error.includes('Email already registered')) {
+            toast.error('Email already registered. Try logging in! 📧');
+          } else if (result.error.includes('Username already taken')) {
+            toast.error('Username taken. Try another! 📝');
+          } else {
+            toast.error('Signup failed. Please try again.');
+          }
+        }
+      } else {
+        console.log('🔵 DEBUG: Attempting login...');
+        result = await login(emailInput, passwordInput);
+        
+        if (result.success) {
           setSuccessMessage('Welcome back! 👋');
           toast.success('Welcome back! 👋', {
             duration: 3000,
@@ -89,30 +128,50 @@ export const LoginPage: React.FC = () => {
               color: '#fff',
             },
           });
-        }
-        
-        // Navigate to intended destination
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 1000);
-      } else if (result.error) {
-        setErrorMessage(result.error);
-        if (result.error.includes('Incorrect password')) {
-          toast.error('Wrong password. Try again! 🔐');
-        } else if (result.error.includes('Username already taken')) {
-          toast.error('Username taken. Pick another! 📝');
-        } else {
-          toast.error('Login failed. Please try again.');
+          
+          // Navigate to intended destination
+          setTimeout(() => {
+            navigate(from, { replace: true });
+          }, 1000);
+        } else if (result.error) {
+          setErrorMessage(result.error);
+          if (result.error.includes('No account found')) {
+            toast.error('No account found. Sign up? 📝');
+          } else if (result.error.includes('Incorrect password')) {
+            toast.error('Wrong password. Try again! 🔐');
+          } else {
+            toast.error('Login failed. Please try again.');
+          }
         }
       }
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('Auth error:', err);
       const errorMsg = err.message || 'Something went wrong. Please try again.';
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmailInput(e.target.value.toLowerCase());
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    // Real-time validation
+    const error = validateEmail(e.target.value);
+    setValidationErrors(prev => ({ ...prev, email: error }));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordInput(e.target.value);
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    // Real-time validation
+    const error = validatePassword(e.target.value);
+    setValidationErrors(prev => ({ ...prev, password: error }));
   };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,17 +185,11 @@ export const LoginPage: React.FC = () => {
     setValidationErrors(prev => ({ ...prev, username: error }));
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordInput(e.target.value);
-    setErrorMessage('');
-    setSuccessMessage('');
-    
-    // Real-time validation
-    const error = validatePassword(e.target.value);
-    setValidationErrors(prev => ({ ...prev, password: error }));
-  };
-
-  const isButtonDisabled = isProcessing || loading || usernameInput.length < 2 || passwordInput.length === 0 || !!validationErrors.username || !!validationErrors.password;
+  const isButtonDisabled = isProcessing || loading || 
+    emailInput.length === 0 || passwordInput.length === 0 || 
+    (isSignupMode && usernameInput.length < 2) ||
+    !!validationErrors.email || !!validationErrors.password || 
+    (isSignupMode && !!validationErrors.username);
 
   // If user is already authenticated, show a different message
   if (isAuthenticated) {
@@ -199,7 +252,7 @@ export const LoginPage: React.FC = () => {
             <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto ${
               isDark ? 'text-white' : 'text-gray-800'
             }`}>
-              Your name. Your vibe. That's all we need.
+              {isSignupMode ? 'Join the vibe tribe' : 'Welcome back to your vibes'}
             </p>
           </div>
 
@@ -210,21 +263,74 @@ export const LoginPage: React.FC = () => {
             <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center shadow-lg ${
               isDark ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-pink-200 to-purple-200'
             }`}>
-              <span className="text-4xl">🌸✨</span>
+              <span className="text-4xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
             </div>
           </div>
 
-          {/* Login Card with proper spacing */}
+          {/* Auth Card with proper spacing */}
           <div className={`glass-strong rounded-3xl p-8 shadow-2xl transform transition-all duration-1000 delay-400 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <div className="text-center mb-6">
               <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Welcome to JinjjaMood
+                {isSignupMode ? 'Create Your Account' : 'Welcome Back'}
               </h2>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Enter your username and password to login or create an account
+                {isSignupMode 
+                  ? 'Join JinjjaMood and start tracking your real feelings'
+                  : 'Sign in to continue your mood journey'
+                }
               </p>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="flex justify-center mb-6">
+              <div className={`flex rounded-2xl p-1 border-2 ${
+                isDark 
+                  ? 'bg-slate-800/90 border-slate-600' 
+                  : 'bg-white/95 border-gray-300'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignupMode(false);
+                    setErrorMessage('');
+                    setSuccessMessage('');
+                    setValidationErrors({});
+                  }}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    !isSignupMode
+                      ? isDark
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'bg-purple-500 text-white shadow-lg'
+                      : isDark 
+                        ? 'text-gray-300 hover:text-white hover:bg-slate-700' 
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                  }`}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignupMode(true);
+                    setErrorMessage('');
+                    setSuccessMessage('');
+                    setValidationErrors({});
+                  }}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    isSignupMode
+                      ? isDark
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'bg-purple-500 text-white shadow-lg'
+                      : isDark 
+                        ? 'text-gray-300 hover:text-white hover:bg-slate-700' 
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                  }`}
+                >
+                  Sign Up
+                </button>
+              </div>
             </div>
 
             {/* Success Message */}
@@ -257,46 +363,85 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            {/* Login Form */}
+            {/* Auth Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email Field */}
               <div>
-                <label htmlFor="username" className={`block text-sm font-medium mb-2 ${
+                <label htmlFor="email" className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Username
+                  Email Address
                 </label>
                 <div className="relative">
                   <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
                     isDark ? 'text-gray-400' : 'text-gray-400'
                   }`}>
-                    <User className="h-5 w-5" />
+                    <Mail className="h-5 w-5" />
                   </div>
                   <input
-                    type="text"
-                    id="username"
-                    value={usernameInput}
-                    onChange={handleUsernameChange}
-                    placeholder="your_username"
+                    type="email"
+                    id="email"
+                    value={emailInput}
+                    onChange={handleEmailChange}
+                    placeholder="your@email.com"
                     className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
-                      validationErrors.username 
+                      validationErrors.email 
                         ? 'border-red-500 focus:ring-red-500' 
                         : isDark 
                           ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
                           : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
                     }`}
-                    maxLength={20}
                     required
                     disabled={isProcessing}
                   />
                 </div>
-                {validationErrors.username && (
-                  <p className="mt-1 text-xs text-red-500">{validationErrors.username}</p>
+                {validationErrors.email && (
+                  <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>
                 )}
-                <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                  2-20 characters, letters, numbers, and underscores only
-                </p>
               </div>
 
+              {/* Username Field (Signup only) */}
+              {isSignupMode && (
+                <div>
+                  <label htmlFor="username" className={`block text-sm font-medium mb-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Username
+                  </label>
+                  <div className="relative">
+                    <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+                      isDark ? 'text-gray-400' : 'text-gray-400'
+                    }`}>
+                      <User className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      id="username"
+                      value={usernameInput}
+                      onChange={handleUsernameChange}
+                      placeholder="your_username"
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                        validationErrors.username 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : isDark 
+                            ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                            : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                      }`}
+                      maxLength={20}
+                      required
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  {validationErrors.username && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.username}</p>
+                  )}
+                  <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    2-20 characters, letters, numbers, and underscores only
+                  </p>
+                </div>
+              )}
+
+              {/* Password Field */}
               <div>
                 <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-gray-300' : 'text-gray-700'
@@ -304,13 +449,18 @@ export const LoginPage: React.FC = () => {
                   Password
                 </label>
                 <div className="relative">
+                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+                    isDark ? 'text-gray-400' : 'text-gray-400'
+                  }`}>
+                    <Lock className="h-5 w-5" />
+                  </div>
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     value={passwordInput}
                     onChange={handlePasswordChange}
                     placeholder="Enter your password"
-                    className={`block w-full pl-3 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                    className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
                       validationErrors.password 
                         ? 'border-red-500 focus:ring-red-500' 
                         : isDark 
@@ -336,9 +486,11 @@ export const LoginPage: React.FC = () => {
                 {validationErrors.password && (
                   <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
                 )}
-                <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                  If username exists, we'll log you in. If not, we'll create your account!
-                </p>
+                {isSignupMode && (
+                  <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Minimum 6 characters
+                  </p>
+                )}
               </div>
 
               <button
@@ -361,11 +513,11 @@ export const LoginPage: React.FC = () => {
                   {isProcessing ? (
                     <>
                       <Loader className="animate-spin h-5 w-5" />
-                      Processing...
+                      {isSignupMode ? 'Creating Account...' : 'Signing In...'}
                     </>
                   ) : (
                     <>
-                      Login / Sign Up
+                      {isSignupMode ? 'Create Account' : 'Sign In'}
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                     </>
                   )}
@@ -381,7 +533,7 @@ export const LoginPage: React.FC = () => {
                 }`}>
                   <Sparkles size={12} className="text-purple-600" />
                 </div>
-                <span>Cross-device access with username & password</span>
+                <span>Secure email & password authentication</span>
               </div>
               <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
@@ -397,7 +549,7 @@ export const LoginPage: React.FC = () => {
                 }`}>
                   <User size={12} className="text-blue-600" />
                 </div>
-                <span>No OTPs. No trackers. Just vibes.</span>
+                <span>Cross-device sync with your unique username</span>
               </div>
             </div>
           </div>
@@ -409,12 +561,12 @@ export const LoginPage: React.FC = () => {
             <div className="flex items-center justify-center gap-2 mb-2">
               <CheckCircle size={16} className="text-green-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Simple & Secure
+                Secure & Private
               </span>
             </div>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Your mood data is stored securely with Firebase. If your username exists, we'll log you in. 
-              If not, we'll create your account instantly. It's that simple!
+              Your data is protected with Firebase Authentication and encrypted storage. 
+              We respect your privacy and never share your personal information.
             </p>
           </div>
         </div>
