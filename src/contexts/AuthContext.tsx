@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { getAuth, signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
 import toast from 'react-hot-toast';
@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 interface UserProfile {
   uid: string;
   username: string;
-  name: string;
   password: string; // For demo purposes - plain text (NOT for production)
   createdAt: Date;
 }
@@ -16,6 +15,7 @@ interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  authLoading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string; isNewUser?: boolean }>;
   logout: () => Promise<void>;
@@ -37,7 +37,8 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,68 +49,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       
       if (user) {
-        // User is signed in, load their profile
-        await loadUserProfile(user.uid);
-      } else {
-        // User is signed out, check for auto-login
-        const storedUser = localStorage.getItem('jinjjamood_currentUser');
-        if (storedUser) {
-          console.log('🔵 DEBUG: Found stored user, attempting auto-login');
+        // User is signed in, try to load their profile from localStorage first
+        const storedProfile = localStorage.getItem('jinjjamood_currentUser');
+        if (storedProfile) {
           try {
-            const userData = JSON.parse(storedUser);
-            // Attempt to sign in anonymously and restore session
-            const userCredential = await signInAnonymously(auth);
-            if (userCredential.user) {
-              // Try to load the stored profile
-              await loadUserProfile(userCredential.user.uid);
-            }
+            const profileData = JSON.parse(storedProfile);
+            console.log('🔵 DEBUG: Found stored profile, loading from Firestore:', profileData.username);
+            await loadUserProfileByUsername(profileData.username);
           } catch (error) {
-            console.error('❌ DEBUG: Auto-login failed:', error);
+            console.error('❌ DEBUG: Error parsing stored profile:', error);
             localStorage.removeItem('jinjjamood_currentUser');
             setUserProfile(null);
-            setLoading(false);
           }
         } else {
+          console.log('🔵 DEBUG: No stored profile found');
           setUserProfile(null);
-          setLoading(false);
         }
+      } else {
+        // User is signed out
+        setUserProfile(null);
+        localStorage.removeItem('jinjjamood_currentUser');
       }
+      
+      setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const loadUserProfile = async (uid: string) => {
+  const loadUserProfileByUsername = async (username: string) => {
     try {
-      console.log('🔵 DEBUG: Loading user profile for uid:', uid);
+      console.log('🔵 DEBUG: Loading user profile for username:', username);
       
-      // Ensure Firebase Auth token is established before Firestore read
-      if (auth.currentUser) {
-        console.log('🔵 DEBUG: Refreshing Firebase Auth token...');
-        await auth.currentUser.getIdToken(true);
-        console.log('✅ DEBUG: Firebase Auth token refreshed');
-      }
+      // Get user document using username as document ID
+      const userDocRef = doc(db, 'users', username);
+      const userDoc = await getDoc(userDocRef);
       
-      // Query users collection to find document with matching uid
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('uid', '==', uid)
-      );
-      const querySnapshot = await getDocs(usersQuery);
-      
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
+      if (userDoc.exists()) {
         const data = userDoc.data();
         const profile = {
-          uid: uid,
-          username: data.username,
-          name: data.name,
+          uid: data.uid,
+          username: data.username || username, // Fallback to document ID
           password: data.password,
           createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date()
         };
         setUserProfile(profile);
         
-        // Store user profile in localStorage for auto-login (excluding password for security)
+        // Store user profile in localStorage (excluding password for security)
         const profileForStorage = { ...profile };
         delete profileForStorage.password;
         localStorage.setItem('jinjjamood_currentUser', JSON.stringify(profileForStorage));
@@ -123,8 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('❌ DEBUG: Error loading user profile:', err);
       setError(`Failed to load user profile: ${err.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -171,14 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting authentication process for username:', trimmedUsername);
 
-      // Step 1: Ensure we have a Firebase Auth user first
-      let firebaseUser = currentUser;
-      if (!firebaseUser) {
-        console.log('🔵 DEBUG: No current Firebase user, signing in anonymously...');
-        const userCredential = await signInAnonymously(auth);
-        firebaseUser = userCredential.user;
-        console.log('✅ DEBUG: Firebase Auth successful, uid:', firebaseUser.uid);
-      }
+      // Step 1: Sign in anonymously to get Firebase Auth user
+      console.log('🔵 DEBUG: Signing in anonymously...');
+      const userCredential = await signInAnonymously(auth);
+      const firebaseUser = userCredential.user;
+      console.log('✅ DEBUG: Firebase Auth successful, uid:', firebaseUser.uid);
 
       // Ensure Firebase Auth token is established before Firestore operations
       console.log('🔵 DEBUG: Ensuring Firebase Auth token is established...');
@@ -206,8 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Update the document with current Firebase UID (in case it changed)
         await setDoc(userDocRef, {
           uid: firebaseUser.uid,
-          username: userData.username,
-          name: userData.name,
+          username: trimmedUsername,
           password: userData.password,
           createdAt: userData.createdAt
         });
@@ -225,7 +205,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newUserProfile = {
           uid: firebaseUser.uid,
           username: trimmedUsername,
-          name: trimmedUsername, // Using username as display name
           password: trimmedPassword, // Storing plain text for demo (NOT for production)
           createdAt: serverTimestamp()
         };
@@ -264,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.uid) {
+    if (!userProfile?.username) {
       return { success: false, error: 'User not authenticated' };
     }
 
@@ -307,7 +286,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(newUserDocRef, {
         uid: userProfile.uid,
         username: trimmedUsername,
-        name: trimmedUsername,
         password: userProfile.password,
         createdAt: userProfile.createdAt
       });
@@ -319,8 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update local state
       const updatedProfile = {
         ...userProfile,
-        username: trimmedUsername,
-        name: trimmedUsername
+        username: trimmedUsername
       };
       setUserProfile(updatedProfile);
       
@@ -337,7 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.uid || !currentUser) {
+    if (!userProfile?.username || !currentUser) {
       return { success: false, error: 'User not authenticated' };
     }
 
@@ -416,6 +393,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     userProfile,
     loading,
+    authLoading,
     error,
     login,
     logout,
