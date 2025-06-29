@@ -2,13 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Users collection - proper access control for user profiles
-    match /users/{userId} {
-      // Allow reading own profile and allow listing for username checks
-      allow read: if request.auth != null && request.auth.uid == userId;
+    match /users/{username} {
+      // Allow reading own profile - compare auth.uid with document ID
+      allow read: if request.auth != null && request.auth.uid == username;
       
       // Allow creating own profile during registration
       allow create: if request.auth != null && 
-                    request.auth.uid == userId &&
+                    request.auth.uid == username &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
@@ -19,7 +19,7 @@ service cloud.firestore {
       
       // Allow updating own profile
       allow update: if request.auth != null && 
-                    request.auth.uid == userId &&
+                    request.auth.uid == username &&
                     request.resource.data.username is string &&
                     request.resource.data.username.size() >= 2 &&
                     request.resource.data.username.size() <= 20 &&
@@ -28,7 +28,7 @@ service cloud.firestore {
                     request.resource.data.password is string;
       
       // Allow deleting own profile
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == username;
     }
     
     // Allow listing users collection for username uniqueness checks
