@@ -33,7 +33,12 @@ export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimi
   } catch (error: any) {
     console.error('Error checking daily mood limit:', error);
     
-    // Fallback to localStorage check
+    // Re-throw permission-denied errors to ensure they're handled properly
+    if (error.code === 'permission-denied') {
+      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
+    }
+    
+    // Fallback to localStorage check for other errors
     const localResult = checkDailyMoodLimitLocal(uid);
     return { 
       hasReachedLimit: localResult, 
@@ -84,8 +89,9 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
   } catch (error: any) {
     console.error('Error saving mood log:', error);
     
+    // Re-throw permission-denied errors to ensure they're handled properly
     if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
     }
     
     // Fallback to localStorage
@@ -127,8 +133,9 @@ export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
   } catch (error: any) {
     console.error('Error fetching mood logs:', error);
     
+    // Re-throw permission-denied errors to ensure they're handled properly
     if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
     }
     
     return getMoodLogsLocal(uid);
@@ -151,8 +158,9 @@ export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => 
   } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
     
+    // Re-throw permission-denied errors to ensure they're handled properly
     if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please configure your Firestore security rules to allow access to the moodLogs collection.');
+      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
     }
     
     return getLatestMoodLogLocal(uid);
@@ -198,6 +206,12 @@ export const getMoodLogsByDateRange = async (
     return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   } catch (error: any) {
     console.error('Error fetching mood logs by date range:', error);
+    
+    // Re-throw permission-denied errors to ensure they're handled properly
+    if (error.code === 'permission-denied') {
+      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
+    }
+    
     return [];
   }
 };

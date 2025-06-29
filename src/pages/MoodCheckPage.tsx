@@ -14,7 +14,7 @@ import { getMoodFeedback, createMoodAnimation, createMoodOverlay } from '../util
 const DAILY_MOOD_LIMIT = 5;
 
 export const MoodCheckPage: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, authLoading } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
@@ -30,6 +30,11 @@ export const MoodCheckPage: React.FC = () => {
     setIsVisible(true);
     
     const checkDailyLimit = async () => {
+      // Wait for authentication to complete before checking daily limit
+      if (authLoading) {
+        return;
+      }
+
       if (userProfile?.uid) {
         try {
           const { hasReachedLimit: limitReached, count } = await checkDailyMoodLimit(userProfile.uid);
@@ -41,13 +46,17 @@ export const MoodCheckPage: React.FC = () => {
           }
         } catch (error) {
           console.error('Error checking daily limit:', error);
+          // Only set error message for non-permission errors
+          if (error instanceof Error && !error.message.includes('permission')) {
+            setErrorMessage('Unable to check daily limit. Please try again.');
+          }
         }
       }
       setCheckingLimit(false);
     };
 
     checkDailyLimit();
-  }, [userProfile?.uid]);
+  }, [userProfile?.uid, authLoading]);
 
   const handleSubmit = async () => {
     if (!selectedMood) {
@@ -217,7 +226,7 @@ export const MoodCheckPage: React.FC = () => {
     }
   };
 
-  if (checkingLimit) {
+  if (authLoading || checkingLimit) {
     return (
       <div className={`min-h-screen flex items-center justify-center pt-16 ${
         isDark 
@@ -229,7 +238,7 @@ export const MoodCheckPage: React.FC = () => {
             <Sparkles className="text-white" size={24} />
           </div>
           <p className="text-heading text-primary">
-            Checking your mood history...
+            {authLoading ? 'Loading...' : 'Checking your mood history...'}
           </p>
         </div>
       </div>
