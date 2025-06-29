@@ -23,14 +23,17 @@ service cloud.firestore {
       // Allow reading for username uniqueness checks (including unauthenticated users during signup)
       allow read;
       
-      // Allow creating username reservation during signup - SIMPLIFIED
-      allow create: if request.auth != null;
+      // Allow creating username reservation during signup - enforce ownership
+      allow create: if request.auth != null && 
+                    request.resource.data.uid == request.auth.uid;
       
       // Allow updating own username reservation
-      allow update: if request.auth != null;
+      allow update: if request.auth != null && 
+                    resource.data.uid == request.auth.uid;
       
       // Allow deleting username reservations
-      allow delete: if request.auth != null;
+      allow delete: if request.auth != null && 
+                    resource.data.uid == request.auth.uid;
     }
     
     // Mood logs collection - secure per-user access with expanded mood validation
