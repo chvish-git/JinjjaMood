@@ -23,26 +23,28 @@ export const MoodSelector: React.FC<MoodSelectorProps> = ({ selectedMood, onMood
   const activeCategory_info = categories.find(cat => cat.key === activeCategory);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      {/* Category Tabs */}
+    <div className="w-full max-w-6xl mx-auto">
+      {/* Horizontal Category Tabs */}
       <div className="flex justify-center mb-8">
-        <div className="glass-strong rounded-2xl p-2">
-          {categories.map(({ key, label, emoji, color }) => (
-            <button
-              key={key}
-              onClick={() => setActiveCategory(key)}
-              className={`flex items-center gap-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 focus-enhanced ${
-                activeCategory === key
-                  ? `${color} text-white shadow-lg transform scale-105` 
-                  : isDark 
-                    ? 'text-gray-300 hover:text-white hover:bg-white/10' 
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
-              }`}
-            >
-              <span className="text-xl">{emoji}</span>
-              <span className="hidden sm:inline font-medium">{label}</span>
-            </button>
-          ))}
+        <div className="glass-strong rounded-2xl p-2 w-full max-w-2xl">
+          <div className="grid grid-cols-4 gap-2">
+            {categories.map(({ key, label, emoji, color }) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`flex flex-col items-center gap-2 px-4 py-4 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 focus-enhanced ${
+                  activeCategory === key
+                    ? `${color} text-white shadow-lg transform scale-105` 
+                    : isDark 
+                      ? 'text-gray-300 hover:text-white hover:bg-white/10' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                }`}
+              >
+                <span className="text-2xl">{emoji}</span>
+                <span className="font-medium text-xs leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
