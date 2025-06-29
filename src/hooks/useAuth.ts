@@ -68,7 +68,7 @@ export const useAuth = () => {
           uid: uid,
           username: data.username,
           name: data.name,
-          createdAt: data.createdAt.toDate()
+          createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date()
         };
         setUserProfile(profile);
         
