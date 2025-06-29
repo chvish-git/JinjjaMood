@@ -100,15 +100,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
     // Validation with witty messages
     if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the email field. Fill it in, bestie.' };
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     if (!password || password.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the password field. Fill it in, bestie.' };
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     if (!username || username.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the username field. Fill it in, bestie.' };
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!usernameSnapshot.empty) {
         console.log('❌ DEBUG: Username already taken:', trimmedUsername);
-        return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
+        return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
       }
 
       // Step 2: Create Firebase account
@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let errorMessage = 'Something went sideways. Try again?';
       
       if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email\'s already in the system. You know what to do.';
+        errorMessage = 'This email already joined the vibe. Try logging in.';
       } else if (err.code === 'auth/weak-password') {
         errorMessage = 'That password\'s weaker than decaf coffee. Beef it up!';
       } else if (err.code === 'auth/invalid-email') {
@@ -207,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (err.code === 'permission-denied') {
         errorMessage = 'Permission denied. The vibes are off today.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Can\'t reach the servers. Check your internet and try again.';
+        errorMessage = 'Mood radar\'s down. Try again in a sec?';
       } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
@@ -222,11 +222,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     // Validation with witty messages
     if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the email field. Fill it in, bestie.' };
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     if (!password || password.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the password field. Fill it in, bestie.' };
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -234,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'You\'re offline. Connect to the internet to get back in!' };
+      return { success: false, error: 'Firestore offline. The vibes are off today.' };
     }
 
     try {
@@ -269,11 +269,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let errorMessage = 'Login failed. Try again?';
       
       if (err.code === 'auth/user-not-found') {
-        errorMessage = 'Hmm. No account? Looks like you\'re tryna vibe without a ticket.';
+        errorMessage = 'No account with that email. Feeling new? Try signing up.';
       } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'That\'s not the password, legend. Try again?';
+        errorMessage = 'That ain\'t the one. Try again?';
       } else if (err.code === 'auth/invalid-credential') {
-        errorMessage = 'Hmm. No account? Looks like you\'re tryna vibe without a ticket.';
+        errorMessage = 'No account with that email. Feeling new? Try signing up.';
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = 'That email looks sus. Double-check it?';
       } else if (err.code === 'auth/user-disabled') {
@@ -283,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (err.code === 'permission-denied') {
         errorMessage = 'Permission denied. The vibes are off today.';
       } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Can\'t reach the servers. Check your internet and try again.';
+        errorMessage = 'Firestore offline. The vibes are off today.';
       } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
@@ -426,11 +426,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🟡 DEBUG: setError(null) called');
       
       // Show friendly logout toast
-      toast.success('Catch you later, moodster.', {
+      toast.success('See you soon, vibe rider.', {
         duration: 3000,
         style: {
           background: '#10B981',
           color: '#fff',
+          fontWeight: '600',
         },
       });
       

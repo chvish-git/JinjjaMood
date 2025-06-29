@@ -43,20 +43,20 @@ export const LoginPage: React.FC = () => {
 
   // Real-time validation with witty messages
   const validateEmail = (email: string) => {
-    if (!email.trim()) return 'Don\'t ghost the email field. Fill it in, bestie.';
+    if (!email.trim()) return 'Don\'t ghost the form. Fill it in, bestie.';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return 'That email looks sus. Double-check it?';
     return '';
   };
 
   const validatePassword = (password: string) => {
-    if (!password.trim()) return 'Don\'t ghost the password field. Fill it in, bestie.';
-    if (password.length < 6) return 'Password needs at least 6 characters. Make it stronger!';
+    if (!password.trim()) return 'Don\'t ghost the form. Fill it in, bestie.';
+    if (isSignupMode && password.length < 6) return 'Password needs at least 6 characters. Make it stronger!';
     return '';
   };
 
   const validateUsername = (username: string) => {
-    if (!username.trim()) return 'Don\'t ghost the username field. Fill it in, bestie.';
+    if (!username.trim()) return 'Don\'t ghost the form. Fill it in, bestie.';
     if (username.length < 2) return 'Username needs at least 2 characters. Give it some substance!';
     if (username.length > 20) return 'Username\'s too long. Keep it snappy!';
     if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Username can only have letters, numbers, and underscores. Keep it clean!';
@@ -111,11 +111,11 @@ export const LoginPage: React.FC = () => {
           
           // Show specific toasts for different errors
           if (result.error.includes('already in the system')) {
-            toast.error('This email\'s already in the system. You know what to do.', {
+            toast.error('This email already joined the vibe. Try logging in.', {
               style: { fontWeight: '600' }
             });
           } else if (result.error.includes('already vibing with that name')) {
-            toast.error('Someone\'s already vibing with that name. Pick a new one?', {
+            toast.error('That name\'s already vibin\' with someone else. Try another.', {
               style: { fontWeight: '600' }
             });
           } else {
@@ -129,8 +129,8 @@ export const LoginPage: React.FC = () => {
         result = await login(emailInput, passwordInput);
         
         if (result.success) {
-          setSuccessMessage('Back in the vibe zone.');
-          toast.success('Back in the vibe zone.', {
+          setSuccessMessage('Back in the zone.');
+          toast.success('Back in the zone.', {
             duration: 3000,
             style: {
               background: '#8B5CF6',
@@ -148,11 +148,11 @@ export const LoginPage: React.FC = () => {
           
           // Show specific toasts for different errors
           if (result.error.includes('tryna vibe without a ticket')) {
-            toast.error('Hmm. No account? Looks like you\'re tryna vibe without a ticket.', {
+            toast.error('No account with that email. Feeling new? Try signing up.', {
               style: { fontWeight: '600' }
             });
           } else if (result.error.includes('not the password')) {
-            toast.error('That\'s not the password, legend. Try again?', {
+            toast.error('That ain\'t the one. Try again?', {
               style: { fontWeight: '600' }
             });
           } else {
@@ -272,7 +272,7 @@ export const LoginPage: React.FC = () => {
             <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto ${
               isDark ? 'text-white' : 'text-gray-800'
             }`}>
-              {isSignupMode ? 'Join the vibe tribe' : 'Welcome back to your vibes'}
+              {isSignupMode ? 'Join the vibe tribe' : 'Welcome back, moodster 👋'}
             </p>
           </div>
 
@@ -298,7 +298,7 @@ export const LoginPage: React.FC = () => {
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {isSignupMode 
                   ? 'Join JinjjaMood and start tracking your real feelings'
-                  : 'Sign in to continue your mood journey'
+                  : 'Enter your email and password to get back in the zone'
                 }
               </p>
             </div>
@@ -403,7 +403,7 @@ export const LoginPage: React.FC = () => {
                     id="email"
                     value={emailInput}
                     onChange={handleEmailChange}
-                    placeholder="your@email.com"
+                    placeholder="you@email.com"
                     className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
                       validationErrors.email 
                         ? 'border-red-500 focus:ring-red-500' 
@@ -439,7 +439,7 @@ export const LoginPage: React.FC = () => {
                       id="username"
                       value={usernameInput}
                       onChange={handleUsernameChange}
-                      placeholder="your_username"
+                      placeholder="make it iconic"
                       className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
                         validationErrors.username 
                           ? 'border-red-500 focus:ring-red-500' 
@@ -479,7 +479,7 @@ export const LoginPage: React.FC = () => {
                     id="password"
                     value={passwordInput}
                     onChange={handlePasswordChange}
-                    placeholder="Enter your password"
+                    placeholder={isSignupMode ? "something strong, like your mood swings" : "shhh, secret"}
                     className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
                       validationErrors.password 
                         ? 'border-red-500 focus:ring-red-500' 
@@ -537,7 +537,7 @@ export const LoginPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      {isSignupMode ? 'Create Account' : 'Sign In'}
+                      {isSignupMode ? 'Let\'s vibe' : 'Enter the mood zone'}
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                     </>
                   )}
