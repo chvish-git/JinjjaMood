@@ -90,10 +90,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('✅ DEBUG: Firebase Auth token refreshed');
       }
       
-      const userDocRef = doc(db, 'users', uid);
-      const userDoc = await getDoc(userDocRef);
+      // Query users collection to find document with matching uid
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('uid', '==', uid)
+      );
+      const querySnapshot = await getDocs(usersQuery);
       
-      if (userDoc.exists()) {
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
         const data = userDoc.data();
         const profile = {
           uid: uid,
@@ -180,18 +185,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await firebaseUser.getIdToken(true);
       console.log('✅ DEBUG: Firebase Auth token confirmed');
 
-      // Step 2: Check if username exists in Firestore
+      // Step 2: Check if username exists in Firestore using document ID
       console.log('🔵 DEBUG: Checking if username exists...');
-      const usernameQuery = query(
-        collection(db, 'users'),
-        where('username', '==', trimmedUsername)
-      );
-      const usernameSnapshot = await getDocs(usernameQuery);
+      const userDocRef = doc(db, 'users', trimmedUsername);
+      const userDoc = await getDoc(userDocRef);
       
-      if (!usernameSnapshot.empty) {
+      if (userDoc.exists()) {
         // Username exists - this is a login attempt
         console.log('🔵 DEBUG: Username found, attempting login...');
-        const userDoc = usernameSnapshot.docs[0];
         const userData = userDoc.data();
         
         // Check password
@@ -200,30 +201,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: 'Incorrect password. Please try again.' };
         }
         
-        console.log('✅ DEBUG: Password correct, migrating user profile to current Firebase UID...');
+        console.log('✅ DEBUG: Password correct, updating user profile with current Firebase UID...');
         
-        // Always migrate the user profile to the current Firebase Auth UID
-        // This ensures the UID in Firestore matches the Firebase Auth UID
-        const currentFirebaseUID = firebaseUser.uid;
-        const existingDocUID = userDoc.id;
+        // Update the document with current Firebase UID (in case it changed)
+        await setDoc(userDocRef, {
+          uid: firebaseUser.uid,
+          username: userData.username,
+          name: userData.name,
+          password: userData.password,
+          createdAt: userData.createdAt
+        });
         
-        if (existingDocUID !== currentFirebaseUID) {
-          console.log('🔵 DEBUG: Migrating user profile from', existingDocUID, 'to', currentFirebaseUID);
-          
-          // Create new document with current Firebase UID
-          await setDoc(doc(db, 'users', currentFirebaseUID), {
-            username: userData.username,
-            name: userData.name,
-            password: userData.password,
-            createdAt: userData.createdAt
-          });
-          
-          // Delete the old document
-          await deleteDoc(userDoc.ref);
-          console.log('✅ DEBUG: User profile migration completed');
-        } else {
-          console.log('✅ DEBUG: User profile UID already matches Firebase Auth UID');
-        }
+        console.log('✅ DEBUG: User profile updated with current Firebase UID');
         
         return { success: true, isNewUser: false };
         
@@ -231,16 +220,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Username doesn't exist - this is a signup attempt
         console.log('🔵 DEBUG: Username not found, creating new account...');
 
-        // Create new user profile with current Firebase UID
-        console.log('🔵 DEBUG: Creating new user profile with UID:', firebaseUser.uid);
+        // Create new user profile with username as document ID
+        console.log('🔵 DEBUG: Creating new user profile with username:', trimmedUsername);
         const newUserProfile = {
+          uid: firebaseUser.uid,
           username: trimmedUsername,
           name: trimmedUsername, // Using username as display name
           password: trimmedPassword, // Storing plain text for demo (NOT for production)
           createdAt: serverTimestamp()
         };
         
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
         await setDoc(userDocRef, newUserProfile);
         console.log('✅ DEBUG: New user profile created successfully');
         
@@ -307,24 +296,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Check if new username is already taken
-      const usernameQuery = query(
-        collection(db, 'users'),
-        where('username', '==', trimmedUsername)
-      );
-      const usernameSnapshot = await getDocs(usernameQuery);
+      const newUserDocRef = doc(db, 'users', trimmedUsername);
+      const newUserDoc = await getDoc(newUserDocRef);
       
-      if (!usernameSnapshot.empty) {
+      if (newUserDoc.exists()) {
         return { success: false, error: 'Username already taken. Please choose another one.' };
       }
 
-      // Update user profile
-      const userDocRef = doc(db, 'users', userProfile.uid);
-      await setDoc(userDocRef, {
+      // Create new document with new username
+      await setDoc(newUserDocRef, {
+        uid: userProfile.uid,
         username: trimmedUsername,
         name: trimmedUsername,
         password: userProfile.password,
         createdAt: userProfile.createdAt
       });
+
+      // Delete old document
+      const oldUserDocRef = doc(db, 'users', userProfile.username);
+      await deleteDoc(oldUserDocRef);
 
       // Update local state
       const updatedProfile = {
@@ -365,8 +355,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const deletePromises = moodLogsSnapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
 
-      // Delete user profile from Firestore
-      const userDocRef = doc(db, 'users', userProfile.uid);
+      // Delete user profile from Firestore using username as document ID
+      const userDocRef = doc(db, 'users', userProfile.username);
       await deleteDoc(userDocRef);
       
       // Clear local state

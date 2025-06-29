@@ -1,42 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - proper access control for user profiles
-    match /users/{userId} {
-      // Allow reading own profile - compare auth.uid with document ID
-      allow read: if request.auth != null && request.auth.uid == userId;
+    // Users collection - using username as document ID with public read access
+    match /users/{username} {
+      // Allow reading any user profile (public usernames)
+      allow read: if request.auth != null;
       
-      // Allow creating own profile during registration
-      allow create: if request.auth != null && 
-                    request.auth.uid == userId &&
-                    request.resource.data.username is string &&
-                    request.resource.data.username.size() >= 2 &&
-                    request.resource.data.username.size() <= 20 &&
-                    request.resource.data.username.matches('^[a-z0-9_]+$') &&
-                    request.resource.data.name is string &&
-                    request.resource.data.password is string &&
-                    request.resource.data.createdAt != null;
-      
-      // Allow updating own profile
-      allow update: if request.auth != null && 
-                    request.auth.uid == userId &&
-                    request.resource.data.username is string &&
-                    request.resource.data.username.size() >= 2 &&
-                    request.resource.data.username.size() <= 20 &&
-                    request.resource.data.username.matches('^[a-z0-9_]+$') &&
-                    request.resource.data.name is string &&
-                    request.resource.data.password is string;
-      
-      // Allow deleting own profile OR deleting old profile during migration
-      allow delete: if request.auth != null && 
-                    (request.auth.uid == userId ||
-                     (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == resource.data.username));
-    }
-    
-    // Allow listing users collection for username uniqueness checks
-    match /users {
-      allow list: if request.auth != null;
+      // Allow writing only if the authenticated user's UID matches the document's uid field
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid;
     }
     
     // Mood logs collection - secure per-user access with expanded mood validation
