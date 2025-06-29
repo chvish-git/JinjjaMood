@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
-  const { checkUsernameAndCreateOrLogin, loading, isAuthenticated } = useAuth();
+  const { login, loading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Get the intended destination from location state
+  const from = location.state?.from?.pathname || '/mood';
+
   useEffect(() => {
     setIsVisible(true);
     
-    // Redirect if already logged in (auto-login protection)
+    // Redirect if already logged in
     if (isAuthenticated) {
-      console.log('🔄 DEBUG: User already authenticated, would redirect to home');
-      // Note: In a real app with routing, you'd redirect here
-      // For now, the AuthGuard handles this by not showing LoginPage
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +33,7 @@ export const LoginPage: React.FC = () => {
     setIsProcessing(true);
     
     try {
-      const result = await checkUsernameAndCreateOrLogin(usernameInput);
+      const result = await login(usernameInput);
       
       if (result.success) {
         if (result.isNewUser) {
@@ -51,7 +55,11 @@ export const LoginPage: React.FC = () => {
             },
           });
         }
-        // The useAuth hook will automatically update and redirect to home
+        
+        // Navigate to intended destination
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1000);
       } else if (result.error) {
         setErrorMessage(result.error);
         toast.error('Login failed. Please try again.');
@@ -117,7 +125,7 @@ export const LoginPage: React.FC = () => {
           </p>
           
           <p className="text-lg md:text-xl font-medium text-gray-800 max-w-2xl mx-auto">
-            Check in with your real vibes
+            Enter your vibe name
           </p>
         </div>
 
@@ -210,7 +218,7 @@ export const LoginPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    Login / Create Account
+                    Login / Sign Up
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
@@ -255,20 +263,6 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
       </div>
-
-      {/* Bolt.new Badge */}
-      <a
-        href="https://bolt.new"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-3 right-3 z-50 transition-all duration-300 hover:scale-105 opacity-80 hover:opacity-100"
-      >
-        <img
-          src="/Copy of logotext_poweredby_360w.png"
-          alt="Built with Bolt"
-          className="w-24 h-auto cursor-pointer"
-        />
-      </a>
 
       {/* Floating particles effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
