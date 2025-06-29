@@ -6,9 +6,12 @@ service cloud.firestore {
       // Allow reading own profile
       allow read: if request.auth != null && request.auth.uid == userId;
       
-      // Allow creating own profile during signup - SIMPLIFIED for testing
+      // Allow creating own profile during signup - FIXED for signup flow
       allow create: if request.auth != null && 
-                    request.auth.uid == userId;
+                    request.auth.uid == userId &&
+                    request.resource.data.username is string &&
+                    request.resource.data.email is string &&
+                    request.resource.data.createdAt != null;
       
       // Allow updating own profile
       allow update: if request.auth != null && 
@@ -20,10 +23,10 @@ service cloud.firestore {
     
     // Username reservations collection - for checking username availability
     match /usernames/{username} {
-      // Allow reading for username uniqueness checks (including unauthenticated users during signup)
-      allow read;
+      // Allow reading for username uniqueness checks
+      allow read: if request.auth != null;
       
-      // Allow creating username reservation during signup - enforce ownership
+      // Allow creating username reservation during signup - FIXED
       allow create: if request.auth != null && 
                     request.resource.data.uid == request.auth.uid;
       
