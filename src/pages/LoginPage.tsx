@@ -241,7 +241,7 @@ export const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className={`layout-stable ${
+    <div className={`min-h-screen ${
       isDark 
         ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
         : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
@@ -259,24 +259,25 @@ export const LoginPage: React.FC = () => {
         }`}></div>
       </div>
 
-      {/* Main content with proper centering */}
-      <div className="content-container">
-        <div className="max-w-md mx-auto space-y-8">
-          {/* Perfect Header with proper spacing */}
+      {/* Main content with proper centering and padding */}
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8">
+        <div className="w-full max-w-md mx-auto space-y-8">
+          {/* Perfect Header with proper spacing and centering */}
           <div className={`text-center transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <h1 className="text-display text-gradient animate-pulse text-render-optimized prevent-shift mb-6">
+            {/* Properly sized and centered JinjjaMood title */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-4 leading-tight tracking-tight">
               JinjjaMood
             </h1>
             
-            <p className={`text-lg md:text-xl font-light tracking-wider mb-2 ${
+            <p className={`text-base md:text-lg font-light tracking-wider mb-2 ${
               isDark ? 'text-gray-400' : 'text-gray-600'
             }`}>
               jinjja → real/really
             </p>
             
-            <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto ${
+            <p className={`text-lg md:text-xl font-medium max-w-sm mx-auto ${
               isDark ? 'text-white' : 'text-gray-800'
             }`}>
               {isSignupMode ? 'Join the vibe tribe' : 'Welcome back, moodster 👋'}
@@ -287,19 +288,19 @@ export const LoginPage: React.FC = () => {
           <div className={`text-center transform transition-all duration-1000 delay-200 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center shadow-lg ${
+            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center shadow-lg ${
               isDark ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-pink-200 to-purple-200'
             }`}>
-              <span className="text-4xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
+              <span className="text-3xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
             </div>
           </div>
 
           {/* Auth Card with proper spacing */}
-          <div className={`glass-strong rounded-3xl p-8 shadow-2xl transform transition-all duration-1000 delay-400 ${
+          <div className={`glass-strong rounded-3xl p-6 shadow-2xl transform transition-all duration-1000 delay-400 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <div className="text-center mb-6">
-              <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
                 {isSignupMode ? 'Create Your Account' : 'Welcome Back'}
               </h2>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
