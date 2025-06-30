@@ -574,19 +574,19 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Security Notice */}
+          {/* Security Notice - Now Gen Z and meme-y */}
           <div className={`text-center max-w-md mx-auto transform transition-all duration-1000 delay-600 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <div className="flex items-center justify-center gap-2 mb-2">
               <Shield size={16} className="text-green-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Secure & Private
+                Your Data is Safe, Bestie
               </span>
             </div>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Your data is protected and encrypted with enterprise-grade security. 
-              We respect your privacy and never share your personal information.
+              Your vibes are locked down tighter than your DMs. We encrypt everything and never sell your data. 
+              No cap. 🔒✨
             </p>
           </div>
         </div>
