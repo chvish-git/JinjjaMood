@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .limit(1);
       
       if (error) {
         console.error('❌ DEBUG: Error loading user profile:', error);
@@ -89,12 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (data) {
+      if (data && data.length > 0) {
         const profile = {
-          id: data.id,
-          username: data.username,
-          email: data.email,
-          created_at: new Date(data.created_at)
+          id: data[0].id,
+          username: data[0].username,
+          email: data[0].email,
+          created_at: new Date(data[0].created_at)
         };
         setUserProfile(profile);
         
@@ -178,14 +178,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .select('username')
         .eq('username', trimmedUsername)
-        .single();
+        .limit(1);
       
-      if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+      if (usernameCheckError) {
         console.error('❌ DEBUG: Error checking username:', usernameCheckError);
         return { success: false, error: 'Failed to check username availability. Try again?' };
       }
 
-      if (existingUser) {
+      if (existingUser && existingUser.length > 0) {
         console.log('❌ DEBUG: Username already taken:', trimmedUsername);
         return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
       }
@@ -348,14 +348,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('username')
         .eq('username', trimmedUsername)
         .neq('id', userProfile.id)
-        .single();
+        .limit(1);
       
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('Error checking username:', checkError);
         return { success: false, error: 'Failed to check username availability. Try again?' };
       }
 
-      if (existingUser) {
+      if (existingUser && existingUser.length > 0) {
         return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 

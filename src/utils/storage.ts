@@ -143,30 +143,25 @@ export const getLatestMoodLog = async (userId: string): Promise<MoodLog | null> 
       .select('*')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows found
-        return null;
-      }
       console.error('Error fetching latest mood log:', error);
       throw error;
     }
     
-    if (!data) {
+    if (!data || data.length === 0) {
       return null;
     }
     
     return {
-      id: data.id,
-      mood: data.mood,
-      moodType: data.mood_type as any,
-      journalEntry: data.journal_entry,
-      timestamp: new Date(data.timestamp),
-      day: data.day,
-      hour: data.hour
+      id: data[0].id,
+      mood: data[0].mood,
+      moodType: data[0].mood_type as any,
+      journalEntry: data[0].journal_entry,
+      timestamp: new Date(data[0].timestamp),
+      day: data[0].day,
+      hour: data[0].hour
     };
   } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
