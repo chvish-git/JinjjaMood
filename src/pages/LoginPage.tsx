@@ -221,7 +221,7 @@ export const LoginPage: React.FC = () => {
   // If user is already authenticated, show a different message
   if (isAuthenticated) {
     return (
-      <div className={`layout-stable ${
+      <div className={`min-h-screen flex items-center justify-center ${
         isDark 
           ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
           : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
@@ -259,39 +259,47 @@ export const LoginPage: React.FC = () => {
         }`}></div>
       </div>
 
-      {/* Main content with proper centering and padding */}
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8">
+      {/* Main content with proper centering and safe padding */}
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-md mx-auto space-y-8">
           {/* Perfect Header with proper spacing and centering */}
           <div className={`text-center transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            {/* Properly sized and centered JinjjaMood title */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-4 leading-tight tracking-tight">
+            {/* Properly sized and centered JinjjaMood title with responsive clamp */}
+            <h1 
+              className="font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight tracking-tight"
+              style={{
+                fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+                lineHeight: '1.1'
+              }}
+            >
               JinjjaMood
             </h1>
             
-            <p className={`text-base md:text-lg font-light tracking-wider mb-2 ${
-              isDark ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              jinjja → real/really
-            </p>
-            
-            <p className={`text-lg md:text-xl font-medium max-w-sm mx-auto ${
-              isDark ? 'text-white' : 'text-gray-800'
-            }`}>
-              {isSignupMode ? 'Join the vibe tribe' : 'Welcome back, moodster 👋'}
-            </p>
+            <div className="space-y-3">
+              <p className={`text-base md:text-lg font-light tracking-wider ${
+                isDark ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                jinjja → real/really
+              </p>
+              
+              <p className={`text-lg md:text-xl font-medium ${
+                isDark ? 'text-white' : 'text-gray-800'
+              }`}>
+                {isSignupMode ? 'Join the vibe tribe' : 'Welcome back, moodster 👋'}
+              </p>
+            </div>
           </div>
 
           {/* Cute mood-related image placeholder */}
           <div className={`text-center transform transition-all duration-1000 delay-200 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center shadow-lg ${
+            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center shadow-lg ${
               isDark ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-pink-200 to-purple-200'
             }`}>
-              <span className="text-3xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
+              <span className="text-2xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
             </div>
           </div>
 
