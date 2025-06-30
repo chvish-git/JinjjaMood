@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, TrendingUp, BarChart3, Home, RefreshCw } from 'lucide-react';
-import { getLatestMoodLog, getMoodLogs } from '../utils/storage';
+import { Calendar, Heart, TrendingUp, BarChart3, Home, RefreshCw, Plus } from 'lucide-react';
+import { getLatestMoodLog, getMoodLogs, checkDailyMoodLimit } from '../utils/storage';
 import { getPersonalizedQuote, getDailyTheme, getThemeEmoji } from '../data/vibeQuotes';
 import { MoodLog } from '../types/mood';
 import { VibeQuote } from '../types/vibeQuote';
@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ResultsSkeleton } from '../components/skeletons/ResultsSkeleton';
 import { ResultsEmptyState } from '../components/EmptyStates';
+import { getMoodOption } from '../data/moodOptions';
+import { format } from 'date-fns';
 
 export const ResultsPage: React.FC = () => {
   const { userProfile } = useAuth();
@@ -16,10 +18,13 @@ export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const [latestLog, setLatestLog] = useState<MoodLog | null>(null);
   const [allLogs, setAllLogs] = useState<MoodLog[]>([]);
+  const [todayLogs, setTodayLogs] = useState<MoodLog[]>([]);
   const [vibeQuote, setVibeQuote] = useState<VibeQuote | null>(null);
   const [dailyTheme, setDailyTheme] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dailyCount, setDailyCount] = useState(0);
+  const [canAddMore, setCanAddMore] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -29,14 +34,22 @@ export const ResultsPage: React.FC = () => {
       }
 
       try {
-        const [latest, logs] = await Promise.all([
+        const [latest, logs, dailyLimit] = await Promise.all([
           getLatestMoodLog(userProfile.uid),
-          getMoodLogs(userProfile.uid)
+          getMoodLogs(userProfile.uid),
+          checkDailyMoodLimit(userProfile.uid)
         ]);
         
         setLatestLog(latest);
         setAllLogs(logs);
         setDailyTheme(getDailyTheme());
+        setDailyCount(dailyLimit.count);
+        setCanAddMore(!dailyLimit.hasReachedLimit);
+        
+        // Filter today's logs
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const todaysLogs = logs.filter(log => log.day === today);
+        setTodayLogs(todaysLogs);
         
         if (latest) {
           // Get personalized quote based on user's mood and daily theme
@@ -55,25 +68,15 @@ export const ResultsPage: React.FC = () => {
   }, [userProfile?.uid]);
 
   const getMoodEmoji = (mood: string) => {
-    const emojiMap: { [key: string]: string } = {
-      'Sad': '😢',
-      'Neutral': '😐',
-      'Good': '😊',
-      'Stressed': '😰',
-      'Hyped': '🤩'
-    };
-    return emojiMap[mood] || '😐';
+    const moodOption = getMoodOption(mood as any);
+    return moodOption?.emoji || '😐';
   };
 
   const getMoodColor = (mood: string) => {
-    const colorMap: { [key: string]: string } = {
-      'Sad': isDark ? 'from-blue-500 to-blue-700' : 'from-blue-400 to-blue-600',
-      'Neutral': isDark ? 'from-gray-500 to-gray-700' : 'from-gray-400 to-gray-600',
-      'Good': isDark ? 'from-green-500 to-green-700' : 'from-green-400 to-green-600',
-      'Stressed': isDark ? 'from-orange-500 to-red-600' : 'from-orange-400 to-red-500',
-      'Hyped': isDark ? 'from-purple-500 to-pink-600' : 'from-purple-400 to-pink-500'
-    };
-    return colorMap[mood] || (isDark ? 'from-gray-500 to-gray-700' : 'from-gray-400 to-gray-600');
+    const moodOption = getMoodOption(mood as any);
+    if (!moodOption) return isDark ? 'from-gray-500 to-gray-700' : 'from-gray-400 to-gray-600';
+    
+    return isDark ? moodOption.darkColor : moodOption.color;
   };
 
   const getWeeklyLogs = () => {
@@ -81,6 +84,20 @@ export const ResultsPage: React.FC = () => {
     weekAgo.setDate(weekAgo.getDate() - 7);
     return allLogs.filter(log => log.timestamp >= weekAgo);
   };
+
+  // Calculate daily mood recap
+  const getDailyMoodRecap = () => {
+    const recap = todayLogs.reduce((acc, log) => {
+      const moodOption = getMoodOption(log.mood as any);
+      const type = moodOption?.type || 'neutral';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return recap;
+  };
+
+  const dailyRecap = getDailyMoodRecap();
 
   if (loading) {
     return <ResultsSkeleton />;
@@ -180,6 +197,41 @@ export const ResultsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Daily Mood Recap */}
+        {todayLogs.length > 1 && (
+          <div className={`mb-8 transform transition-all duration-1000 delay-500 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <div className={`p-6 rounded-2xl backdrop-blur-sm border max-w-lg mx-auto ${
+              isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
+            }`}>
+              <h3 className={`text-lg font-bold mb-4 text-center ${
+                isDark ? 'text-white' : 'text-gray-800'
+              }`}>
+                Today's Mood Recap
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(dailyRecap).map(([type, count]) => (
+                  <div key={type} className={`p-3 rounded-lg text-center ${
+                    isDark ? 'bg-white/5' : 'bg-gray-50'
+                  }`}>
+                    <div className={`text-sm font-medium capitalize ${
+                      isDark ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      {type}
+                    </div>
+                    <div className={`text-xl font-bold ${
+                      isDark ? 'text-white' : 'text-gray-800'
+                    }`}>
+                      {count}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Stats */}
         <div className={`mb-8 transform transition-all duration-1000 delay-600 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -210,9 +262,9 @@ export const ResultsPage: React.FC = () => {
             }`}>
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="text-green-400" size={20} />
-                <span className="font-semibold text-sm">Current Streak</span>
+                <span className="font-semibold text-sm">Today</span>
               </div>
-              <p className="text-xl font-bold">1</p>
+              <p className="text-xl font-bold">{dailyCount}/5</p>
             </div>
           </div>
         </div>
@@ -221,19 +273,22 @@ export const ResultsPage: React.FC = () => {
         <div className={`flex flex-col sm:flex-row gap-4 transform transition-all duration-1000 delay-800 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <button
-            onClick={() => navigate('/mood')}
-            className={`group px-6 py-3 text-base font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${
-              isDark 
-                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
-                : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
-              Check In Again
-            </span>
-          </button>
+          {/* Retry CTA - Only show if less than 5 moods today */}
+          {canAddMore && (
+            <button
+              onClick={() => navigate('/mood')}
+              className={`group px-6 py-3 text-base font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${
+                isDark 
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                Add another mood?
+              </span>
+            </button>
+          )}
 
           <button
             onClick={() => navigate('/history')}
