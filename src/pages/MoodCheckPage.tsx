@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Sparkles, Clock, Calendar, AlertCircle } from 'lucide-react';
+import { Send, Sparkles, Clock, Calendar, AlertCircle, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import { MoodSelector } from '../components/MoodSelector';
@@ -270,24 +270,26 @@ export const MoodCheckPage: React.FC = () => {
         <div className={`text-center mb-12 transform transition-all duration-1000 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
-          <h1 className={`text-display mb-6 text-gradient animate-fadeInUp`}>
-            {hasReachedLimit ? 'Vibe sensors need a break!' : 'How are you feeling right now?'}
+          <h1 className={`text-4xl md:text-6xl font-bold mb-6 ${
+            isDark ? 'text-white' : 'text-gray-800'
+          }`}>
+            {hasReachedLimit ? 'Vibe sensors need a break!' : `Hey ${userProfile?.username}, how are you *really* feeling today?`}
           </h1>
           
-          <p className={`text-heading font-light ${
+          <p className={`text-lg md:text-xl font-light ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
             {hasReachedLimit 
               ? 'You\'ve reached your daily mood limit. Come back tomorrow!' 
-              : `Pick your vibe. ${DAILY_MOOD_LIMIT - dailyCount} left today.`
+              : 'Pick your vibe. No pressure.'
             }
           </p>
 
-          {/* Enhanced daily counter */}
+          {/* Enhanced daily counter with progress bar */}
           {!hasReachedLimit && (
-            <div className={`flex items-center justify-center gap-3 mt-6 glass rounded-full px-6 py-3 transition-all duration-300 hover:scale-105`}>
+            <div className={`flex items-center justify-center gap-4 mt-6 glass rounded-full px-6 py-3 transition-all duration-300 hover:scale-105 max-w-md mx-auto`}>
               <Clock size={18} className="text-purple-400" />
-              <span className="text-body font-semibold text-secondary">
+              <span className="text-sm font-semibold text-secondary">
                 Mood {dailyCount + 1} of {DAILY_MOOD_LIMIT} today
               </span>
               <div className="flex gap-1">
@@ -308,10 +310,10 @@ export const MoodCheckPage: React.FC = () => {
           }`}>
             <div className="card-enhanced mood-bonus">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <AlertCircle className="text-white" size={28} />
-                <span className="text-heading font-bold text-white">Daily Vibe Limit Reached!</span>
+                <Zap className="text-white" size={28} />
+                <span className="text-xl font-bold text-white">Daily Vibe Limit Reached!</span>
               </div>
-              <p className="text-body text-white/90 leading-relaxed mb-6">
+              <p className="text-lg text-white/90 leading-relaxed mb-6">
                 You've logged {DAILY_MOOD_LIMIT} moods today. Your vibe sensors need time to recharge! 
                 Come back tomorrow to continue your jinjja journey.
               </p>
@@ -320,12 +322,20 @@ export const MoodCheckPage: React.FC = () => {
                   <div key={i} className="w-4 h-4 rounded-full bg-white/80 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}></div>
                 ))}
               </div>
-              <button
-                onClick={() => navigate('/history')}
-                className="btn-primary bg-white/20 hover:bg-white/30 text-white border-2 border-white/30"
-              >
-                View Your History
-              </button>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => navigate('/history')}
+                  className="btn-primary bg-white/20 hover:bg-white/30 text-white border-2 border-white/30"
+                >
+                  View Your History
+                </button>
+                <button
+                  onClick={() => navigate('/analytics')}
+                  className="btn-primary bg-white/20 hover:bg-white/30 text-white border-2 border-white/30"
+                >
+                  See Analytics
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -336,9 +346,12 @@ export const MoodCheckPage: React.FC = () => {
             errorMessage ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
           }`}>
             <div className="card-enhanced bg-red-500/20 border-red-400/30">
-              <p className="text-body font-medium text-center text-red-400">
-                {errorMessage}
-              </p>
+              <div className="flex items-center gap-2">
+                <AlertCircle size={20} className="text-red-400" />
+                <p className="text-sm font-medium text-center text-red-400">
+                  {errorMessage}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -370,7 +383,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Smaller Submit Button */}
+        {/* Enhanced Submit Button */}
         {!hasReachedLimit && (
           <div className={`transform transition-all duration-1000 delay-700 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -378,29 +391,29 @@ export const MoodCheckPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || hasReachedLimit || !selectedMood}
-              className={`group relative px-6 py-3 text-base font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+              className={`group relative px-8 py-4 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
                 selectedMood && !hasReachedLimit
                   ? 'btn-primary' 
                   : 'bg-gray-400 text-gray-600 cursor-not-allowed'
               }`}
             >
-              <span className="flex items-center gap-2 relative z-10">
+              <span className="flex items-center gap-3 relative z-10">
                 {isSubmitting ? (
                   <>
-                    <Sparkles size={18} className="animate-spin" />
-                    <span>Saving...</span>
+                    <Sparkles size={20} className="animate-spin" />
+                    <span>Saving your vibe...</span>
                   </>
                 ) : (
                   <>
                     <span>Log Mood ({dailyCount + 1}/{DAILY_MOOD_LIMIT})</span>
-                    <Send size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
+                    <Send size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </span>
               
               {/* Enhanced glow effect */}
               {selectedMood && !hasReachedLimit && (
-                <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
               )}
             </button>
           </div>

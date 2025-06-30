@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Moon, Sun, Sparkles, Heart, Star } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Sparkles, Heart, Star, HelpCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -18,6 +18,7 @@ export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [currentMemeIndex, setCurrentMemeIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -81,8 +82,20 @@ export const LandingPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Enhanced theme toggle */}
-      <div className="absolute top-6 right-6 z-10">
+      {/* Enhanced theme toggle and info button */}
+      <div className="absolute top-6 right-6 z-10 flex gap-3">
+        <button
+          onClick={() => setShowInfo(true)}
+          className={`p-4 rounded-2xl transition-all duration-300 hover:scale-110 glass-strong group ${
+            isDark 
+              ? 'text-white hover:bg-white/20' 
+              : 'text-gray-800 hover:bg-black/20'
+          }`}
+          title="What is JinjjaMood?"
+        >
+          <HelpCircle size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+        </button>
+        
         <button
           onClick={toggleTheme}
           className={`p-4 rounded-2xl transition-all duration-300 hover:scale-110 glass-strong group ${
@@ -98,6 +111,83 @@ export const LandingPage: React.FC = () => {
           )}
         </button>
       </div>
+
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+          <div className={`max-w-md w-full rounded-3xl p-8 shadow-2xl ${
+            isDark ? 'bg-slate-800 border border-slate-600' : 'bg-white border border-gray-200'
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                What is JinjjaMood? 🤔
+              </h3>
+              <button
+                onClick={() => setShowInfo(false)}
+                className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
+                  isDark ? 'hover:bg-white/20 text-gray-400' : 'hover:bg-black/20 text-gray-600'
+                }`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <strong className="text-purple-500">jinjja</strong> (진짜) is Korean for "real" or "really" — and that's exactly what we're about.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">📊</span>
+                  <div>
+                    <h4 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                      Track Your Real Feelings
+                    </h4>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      24 different mood options from "joyful" to "chaos gremlin"
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">🎯</span>
+                  <div>
+                    <h4 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                      Healthy Boundaries
+                    </h4>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Max 5 mood logs per day to prevent overthinking
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">📈</span>
+                  <div>
+                    <h4 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                      Beautiful Analytics
+                    </h4>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Charts, insights, and patterns about your emotional journey
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={`p-4 rounded-xl border-l-4 border-pink-400 ${
+                isDark ? 'bg-pink-500/10' : 'bg-pink-50'
+              }`}>
+                <p className={`text-sm font-medium ${isDark ? 'text-pink-300' : 'text-pink-800'}`}>
+                  No toxic positivity. No judgment. Just real feelings, tracked honestly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main content with proper centering */}
       <div className="content-container">
@@ -143,8 +233,45 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Enhanced Feature Highlights */}
+          <div className={`transform transition-all duration-1000 delay-400 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+          }`}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
+                <div className="text-3xl mb-3">📊</div>
+                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  24 Real Moods
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  From "joyful" to "chaos gremlin" — we've got your vibe covered
+                </p>
+              </div>
+              
+              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
+                <div className="text-3xl mb-3">🎯</div>
+                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  Healthy Limits
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Max 5 moods per day to prevent overthinking your feelings
+                </p>
+              </div>
+              
+              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
+                <div className="text-3xl mb-3">📈</div>
+                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  Beautiful Analytics
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Charts and insights about your emotional patterns
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Enhanced CTA Button with proper spacing */}
-          <div className={`transform transition-all duration-1000 delay-500 ${
+          <div className={`transform transition-all duration-1000 delay-600 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <button
@@ -153,7 +280,7 @@ export const LandingPage: React.FC = () => {
             >
               <span className="flex items-center gap-4 relative z-10">
                 <Sparkles size={24} className="group-hover:rotate-12 transition-transform duration-300" />
-                <span className="font-bold">Enter your vibe zone</span>
+                <span className="font-bold">Join the vibe tribe 💫</span>
                 <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
               </span>
               
@@ -163,7 +290,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Enhanced Footer with proper positioning */}
-          <div className={`transform transition-all duration-1000 delay-700 ${
+          <div className={`transform transition-all duration-1000 delay-800 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
