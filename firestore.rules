@@ -10,8 +10,7 @@ service cloud.firestore {
       allow create: if request.auth != null && 
                     request.auth.uid == userId &&
                     request.resource.data.username is string &&
-                    request.resource.data.email is string &&
-                    request.resource.data.createdAt != null;
+                    request.resource.data.email is string;
       
       // Allow updating own profile
       allow update: if request.auth != null && 
