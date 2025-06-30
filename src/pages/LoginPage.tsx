@@ -147,11 +147,7 @@ export const LoginPage: React.FC = () => {
           setErrorMessage(result.error);
           
           // Show specific toasts for different errors
-          if (result.error.includes('No account with that email')) {
-            toast.error('No account with that email. Feeling new? Try signing up.', {
-              style: { fontWeight: '600' }
-            });
-          } else if (result.error.includes('wrong password')) {
+          if (result.error.includes('That ain\'t the one')) {
             toast.error('That ain\'t the one. Try again?', {
               style: { fontWeight: '600' }
             });

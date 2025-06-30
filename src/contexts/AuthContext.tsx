@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
-import { checkEmailExists, checkUsernameExists, findUserByEmail, checkUsernameAvailableForUpdate } from '../utils/userSearch';
+import { checkEmailExists, checkUsernameExists, checkUsernameAvailableForUpdate } from '../utils/userSearch';
 import toast from 'react-hot-toast';
 
 interface UserProfile {
@@ -269,16 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
 
-      // Step 1: Check if user exists in our database first
-      console.log('🔍 DEBUG: Checking if user exists in database...');
-      const userSearch = await findUserByEmail(trimmedEmail);
-      
-      if (!userSearch.found) {
-        console.log('❌ DEBUG: User not found in database:', trimmedEmail);
-        return { success: false, error: userSearch.message || 'No account with that email. Feeling new? Try signing up.' };
-      }
-
-      // Step 2: Attempt Supabase authentication
+      // Directly attempt Supabase authentication without pre-checking user existence
       console.log('🔵 DEBUG: Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
