@@ -191,7 +191,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (authError) {
-        console.error('❌ DEBUG: Supabase auth error:', authError);
+        // Only log error if it's not the expected "already registered" scenario
+        if (!authError.message.includes('already registered')) {
+          console.error('❌ DEBUG: Supabase auth error:', authError);
+        }
         
         if (authError.message.includes('already registered')) {
           return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
