@@ -22,8 +22,8 @@ service cloud.firestore {
     
     // Username reservations collection - for checking username availability
     match /usernames/{username} {
-      // Allow reading for username uniqueness checks
-      allow read: if request.auth != null;
+      // Allow reading for username uniqueness checks (no auth required for checking availability)
+      allow read;
       
       // Allow creating username reservation during signup - FIXED
       allow create: if request.auth != null && 
