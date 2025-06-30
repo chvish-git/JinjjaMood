@@ -585,7 +585,7 @@ export const LoginPage: React.FC = () => {
               </span>
             </div>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Your data is protected and encrypted with Supabase. 
+              Your data is protected and encrypted with enterprise-grade security. 
               We respect your privacy and never share your personal information.
             </p>
           </div>
