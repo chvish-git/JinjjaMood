@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Moon, Sun, Sparkles, Heart, Star, HelpCircle, X } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Sparkles, HelpCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -46,35 +46,32 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className={`layout-stable transition-all duration-1000 ${
+    <div className={`min-h-screen transition-all duration-1000 ${
       isDark 
         ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
         : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
     }`}>
-      {/* Enhanced animated background elements */}
+      {/* Clean animated background - soft gradients only */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className={`absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float ${
+        <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl animate-float ${
           isDark ? 'bg-purple-500' : 'bg-pink-300'
         }`}></div>
-        <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-float delay-1000 ${
+        <div className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl animate-float delay-1000 ${
           isDark ? 'bg-blue-500' : 'bg-blue-300'
-        }`}></div>
-        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-10 blur-3xl animate-gentle-wave delay-2000 ${
-          isDark ? 'bg-pink-500' : 'bg-purple-300'
         }`}></div>
       </div>
 
-      {/* Enhanced floating emojis */}
+      {/* Subtle floating sparkles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {['😊', '🌸', '✨', '💫', '🌙', '☁️', '🦋', '🌈', '💖', '🌟', '🔮', '🎭'].map((emoji, i) => (
+        {['✨', '💫', '🌟', '⭐'].map((emoji, i) => (
           <div
             key={i}
-            className="absolute text-3xl opacity-30 animate-float"
+            className="absolute text-2xl opacity-20 animate-float"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
               animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${4 + Math.random() * 2}s`
+              animationDuration: `${6 + Math.random() * 2}s`
             }}
           >
             {emoji}
@@ -82,32 +79,32 @@ export const LandingPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Enhanced theme toggle and info button */}
+      {/* Top right controls */}
       <div className="absolute top-6 right-6 z-10 flex gap-3">
         <button
           onClick={() => setShowInfo(true)}
-          className={`p-4 rounded-2xl transition-all duration-300 hover:scale-110 glass-strong group ${
+          className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 backdrop-blur-sm ${
             isDark 
-              ? 'text-white hover:bg-white/20' 
-              : 'text-gray-800 hover:bg-black/20'
+              ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
+              : 'bg-white/30 text-gray-800 hover:bg-white/50 border border-white/40'
           }`}
           title="What is JinjjaMood?"
         >
-          <HelpCircle size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+          <HelpCircle size={20} />
         </button>
         
         <button
           onClick={toggleTheme}
-          className={`p-4 rounded-2xl transition-all duration-300 hover:scale-110 glass-strong group ${
+          className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 backdrop-blur-sm ${
             isDark 
-              ? 'text-white hover:bg-white/20' 
-              : 'text-gray-800 hover:bg-black/20'
+              ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
+              : 'bg-white/30 text-gray-800 hover:bg-white/50 border border-white/40'
           }`}
         >
           {isDark ? (
-            <Sun size={24} className="group-hover:rotate-180 transition-transform duration-500" />
+            <Sun size={20} className="hover:rotate-180 transition-transform duration-500" />
           ) : (
-            <Moon size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+            <Moon size={20} className="hover:rotate-12 transition-transform duration-300" />
           )}
         </button>
       </div>
@@ -189,111 +186,70 @@ export const LandingPage: React.FC = () => {
         </div>
       )}
 
-      {/* Main content with proper centering */}
-      <div className="content-container">
-        <div className="text-center space-y-12">
-          {/* PERFECT Enhanced Header with proper spacing */}
+      {/* Main hero content - centered and clean */}
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+        <div className="text-center space-y-12 max-w-4xl mx-auto">
+          
+          {/* Main title */}
           <div className={`transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className="relative mb-8">
-              {/* PERFECT JinjjaMood title - just right size with proper line height */}
-              <h1 className="text-display text-gradient animate-fadeInUp text-render-optimized prevent-shift">
-                JinjjaMood
-              </h1>
-              
-              {/* Enhanced decorative elements with proper positioning */}
-              <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6">
-                <Star className="text-yellow-400 animate-sparkle" size={32} />
-              </div>
-              <div className="absolute -bottom-2 -left-4 md:-bottom-3 md:-left-6">
-                <Heart className="text-pink-400 animate-gentle-wave" size={24} />
-              </div>
-              <div className="absolute top-1/2 -right-2 md:-right-4">
-                <Sparkles className="text-purple-400 animate-pulse" size={20} />
-              </div>
-            </div>
+            <h1 
+              className="font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight tracking-tight"
+              style={{
+                fontSize: 'clamp(3rem, 12vw, 8rem)',
+                lineHeight: '0.9'
+              }}
+            >
+              JinjjaMood
+            </h1>
             
-            {/* Subtitle with better spacing */}
-            <p className={`text-lg md:text-xl font-light tracking-wider mb-4 ${
+            <p className={`text-lg md:text-xl font-light tracking-wider ${
               isDark ? 'text-gray-300' : 'text-gray-600'
             }`}>
               jinjja → real/really
             </p>
           </div>
 
-          {/* Enhanced dynamic meme line with proper spacing */}
+          {/* Dynamic tagline */}
           <div className={`transform transition-all duration-1000 delay-300 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className="glass-strong rounded-2xl px-8 py-6 max-w-3xl mx-auto">
-              <p className="text-xl md:text-2xl font-medium transition-all duration-500 text-primary">
+            <div className={`backdrop-blur-sm rounded-2xl px-8 py-6 max-w-2xl mx-auto border ${
+              isDark 
+                ? 'bg-white/5 border-white/10' 
+                : 'bg-white/30 border-white/40'
+            }`}>
+              <p className={`text-xl md:text-2xl font-medium transition-all duration-500 ${
+                isDark ? 'text-white' : 'text-gray-800'
+              }`}>
                 {memeLines[currentMemeIndex]}
               </p>
             </div>
           </div>
 
-          {/* Enhanced Feature Highlights */}
-          <div className={`transform transition-all duration-1000 delay-400 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-          }`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
-                <div className="text-3xl mb-3">📊</div>
-                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  24 Real Moods
-                </h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  From "joyful" to "chaos gremlin" — we've got your vibe covered
-                </p>
-              </div>
-              
-              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
-                <div className="text-3xl mb-3">🎯</div>
-                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Healthy Limits
-                </h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Max 5 moods per day to prevent overthinking your feelings
-                </p>
-              </div>
-              
-              <div className="glass rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300">
-                <div className="text-3xl mb-3">📈</div>
-                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Beautiful Analytics
-                </h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Charts and insights about your emotional patterns
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Enhanced CTA Button with proper spacing */}
+          {/* Single vibrant CTA button */}
           <div className={`transform transition-all duration-1000 delay-600 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <button
               onClick={handleEnterVibeZone}
-              className="group relative btn-primary text-xl md:text-2xl px-12 py-6 animate-pulse-glow rounded-3xl"
+              className="group relative inline-flex items-center gap-3 px-12 py-6 text-xl md:text-2xl font-bold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500"
             >
-              <span className="flex items-center gap-4 relative z-10">
-                <Sparkles size={24} className="group-hover:rotate-12 transition-transform duration-300" />
-                <span className="font-bold">Join the vibe tribe 💫</span>
-                <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
-              </span>
+              <Sparkles size={24} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300" />
+              <span>Enter the vibe zone</span>
+              <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-300" />
               
-              {/* Enhanced glow effect */}
-              <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
+              {/* Glow effect on hover */}
+              <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl -z-10"></div>
             </button>
           </div>
 
-          {/* Enhanced Footer with proper positioning */}
+          {/* Footer */}
           <div className={`transform transition-all duration-1000 delay-800 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-base ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Made with too many feelings + Bolt.new ✨
             </p>
           </div>
