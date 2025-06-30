@@ -7,7 +7,7 @@ export interface UserSearchResult {
 }
 
 /**
- * Check if email exists in the database
+ * Check if email exists in the database using Supabase RPC
  */
 export const checkEmailExists = async (email: string): Promise<UserSearchResult> => {
   if (!email || email.trim().length === 0) {
@@ -16,21 +16,26 @@ export const checkEmailExists = async (email: string): Promise<UserSearchResult>
 
   const trimmedEmail = email.trim().toLowerCase();
 
-  try {
-    console.log('🔍 DEBUG: Checking if email exists:', trimmedEmail);
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return { exists: false, message: 'That email looks sus. Double-check it?' };
+  }
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('email')
-      .eq('email', trimmedEmail)
-      .limit(1);
+  try {
+    console.log('🔍 DEBUG: Checking if email exists via RPC:', trimmedEmail);
+
+    // Call the Supabase RPC function
+    const { data, error } = await supabase.rpc('check_email_exists', { 
+      p_email: trimmedEmail 
+    });
 
     if (error) {
-      console.error('❌ DEBUG: Error checking email:', error);
-      throw new Error('Database search failed. The servers are being moody.');
+      console.error('❌ DEBUG: Error checking email via RPC:', error);
+      throw new Error('Email existence check failed. The servers are being moody.');
     }
 
-    const exists = data && data.length > 0;
+    const exists = data as boolean; // The RPC function returns a boolean
     
     console.log('🔍 DEBUG: Email exists result:', exists);
 
@@ -51,7 +56,7 @@ export const checkEmailExists = async (email: string): Promise<UserSearchResult>
 };
 
 /**
- * Check if username exists in the database
+ * Check if username exists in the database using Supabase RPC
  */
 export const checkUsernameExists = async (username: string): Promise<UserSearchResult> => {
   if (!username || username.trim().length === 0) {
@@ -60,9 +65,9 @@ export const checkUsernameExists = async (username: string): Promise<UserSearchR
 
   const trimmedUsername = username.trim().toLowerCase();
 
-  // Basic validation
+  // Basic validation (keep these client-side)
   if (trimmedUsername.length < 2) {
-    return { exists: false, message: 'Username needs at least 2 characters' };
+    return { exists: false, message: 'Username needs at least 2 characters. Give it some substance!' };
   }
 
   if (trimmedUsername.length > 20) {
@@ -70,10 +75,10 @@ export const checkUsernameExists = async (username: string): Promise<UserSearchR
   }
 
   if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-    return { exists: false, message: 'Username can only have letters, numbers, and underscores' };
+    return { exists: false, message: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
   }
 
-  // Check for reserved usernames
+  // Check for reserved usernames (keep these client-side)
   const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp', 'support', 'help', 'info', 'contact'];
   if (reservedNames.includes(trimmedUsername)) {
     return { 
@@ -84,20 +89,19 @@ export const checkUsernameExists = async (username: string): Promise<UserSearchR
   }
 
   try {
-    console.log('🔍 DEBUG: Checking if username exists:', trimmedUsername);
+    console.log('🔍 DEBUG: Checking if username exists via RPC:', trimmedUsername);
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('username')
-      .eq('username', trimmedUsername)
-      .limit(1);
+    // Call the Supabase RPC function
+    const { data, error } = await supabase.rpc('check_username_exists', { 
+      p_username: trimmedUsername 
+    });
 
     if (error) {
-      console.error('❌ DEBUG: Error checking username:', error);
-      throw new Error('Database search failed. The servers are being moody.');
+      console.error('❌ DEBUG: Error checking username via RPC:', error);
+      throw new Error('Username existence check failed. The servers are being moody.');
     }
 
-    const exists = data && data.length > 0;
+    const exists = data as boolean; // The RPC function returns a boolean
     
     console.log('🔍 DEBUG: Username exists result:', exists);
 
@@ -113,116 +117,6 @@ export const checkUsernameExists = async (username: string): Promise<UserSearchR
     return {
       exists: false,
       message: error.message || 'Unable to check username availability'
-    };
-  }
-};
-
-/**
- * Search for user by email (for login)
- */
-export const findUserByEmail = async (email: string): Promise<{
-  found: boolean;
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-  };
-  message?: string;
-}> => {
-  if (!email || email.trim().length === 0) {
-    return { found: false, message: 'Email is required' };
-  }
-
-  const trimmedEmail = email.trim().toLowerCase();
-
-  try {
-    console.log('🔍 DEBUG: Searching for user by email:', trimmedEmail);
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, email')
-      .eq('email', trimmedEmail)
-      .limit(1);
-
-    if (error) {
-      console.error('❌ DEBUG: Error finding user by email:', error);
-      throw new Error('Database search failed. The servers are being moody.');
-    }
-
-    if (data && data.length > 0) {
-      console.log('✅ DEBUG: User found by email');
-      return {
-        found: true,
-        user: data[0],
-        message: 'User found'
-      };
-    } else {
-      console.log('🔍 DEBUG: No user found with that email');
-      return {
-        found: false,
-        message: 'No account with that email. Feeling new? Try signing up.'
-      };
-    }
-  } catch (error: any) {
-    console.error('❌ DEBUG: User search error:', error);
-    return {
-      found: false,
-      message: error.message || 'Unable to search for user'
-    };
-  }
-};
-
-/**
- * Search for user by username
- */
-export const findUserByUsername = async (username: string): Promise<{
-  found: boolean;
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-  };
-  message?: string;
-}> => {
-  if (!username || username.trim().length === 0) {
-    return { found: false, message: 'Username is required' };
-  }
-
-  const trimmedUsername = username.trim().toLowerCase();
-
-  try {
-    console.log('🔍 DEBUG: Searching for user by username:', trimmedUsername);
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, email')
-      .eq('username', trimmedUsername)
-      .limit(1);
-
-    if (error) {
-      console.error('❌ DEBUG: Error finding user by username:', error);
-      throw new Error('Database search failed. The servers are being moody.');
-    }
-
-    if (data && data.length > 0) {
-      console.log('✅ DEBUG: User found by username');
-      return {
-        found: true,
-        user: data[0],
-        message: 'User found'
-      };
-    } else {
-      console.log('🔍 DEBUG: No user found with that username');
-      return {
-        found: false,
-        message: 'Username not found'
-      };
-    }
-  } catch (error: any) {
-    console.error('❌ DEBUG: User search error:', error);
-    return {
-      found: false,
-      message: error.message || 'Unable to search for user'
     };
   }
 };
@@ -250,16 +144,18 @@ export const searchUser = async (identifier: string): Promise<{
   const isEmail = trimmedIdentifier.includes('@');
 
   if (isEmail) {
-    const result = await findUserByEmail(trimmedIdentifier);
+    const result = await checkEmailExists(trimmedIdentifier);
     return {
-      ...result,
-      searchType: 'email'
+      found: result.exists,
+      searchType: 'email',
+      message: result.message
     };
   } else {
-    const result = await findUserByUsername(trimmedIdentifier);
+    const result = await checkUsernameExists(trimmedIdentifier);
     return {
-      ...result,
-      searchType: 'username'
+      found: result.exists,
+      searchType: 'username',
+      message: result.message
     };
   }
 };
@@ -317,6 +213,7 @@ export const getUserStats = async (): Promise<{
 
 /**
  * Check if user can update to a new username (excluding their current username)
+ * This function is used by authenticated users, so it can query the users table directly
  */
 export const checkUsernameAvailableForUpdate = async (
   newUsername: string, 
@@ -358,6 +255,7 @@ export const checkUsernameAvailableForUpdate = async (
   try {
     console.log('🔍 DEBUG: Checking username availability for update:', trimmedUsername);
 
+    // This query works because the user is authenticated and can query their own data
     const { data, error } = await supabase
       .from('users')
       .select('username, id')
