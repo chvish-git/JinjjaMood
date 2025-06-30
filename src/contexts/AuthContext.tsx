@@ -166,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       
       console.log('🔵 DEBUG: Starting signup process for username:', trimmedUsername);
+      console.log('🔵 DEBUG: Signup data:', { email: trimmedEmail, username: trimmedUsername, rememberMe });
 
       // Step 1: Check if email already exists
       console.log('🔍 DEBUG: Checking if email exists...');
@@ -194,6 +195,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only log error if it's not the expected "already registered" scenario
         if (!authError.message.includes('already registered')) {
           console.error('❌ DEBUG: Supabase auth error:', authError);
+          console.error('❌ DEBUG: Auth error details:', {
+            message: authError.message,
+            status: authError.status,
+            name: authError.name
+          });
         }
         
         if (authError.message.includes('already registered')) {
@@ -204,25 +210,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (!authData.user) {
+        console.error('❌ DEBUG: No user returned from auth signup');
         return { success: false, error: 'Signup failed. The servers are being moody.' };
       }
 
-      console.log('✅ DEBUG: Supabase account created, userId:', authData.user.id);
+      console.log('✅ DEBUG: Supabase account created successfully');
+      console.log('🔵 DEBUG: Auth user data:', {
+        id: authData.user.id,
+        email: authData.user.email,
+        email_confirmed_at: authData.user.email_confirmed_at,
+        created_at: authData.user.created_at
+      });
 
-      // Step 4: Save user profile
-      console.log('🔵 DEBUG: Saving user profile...');
-      const { error: profileError } = await supabase
+      // Step 4: Save user profile to public.users table
+      console.log('🔵 DEBUG: Saving user profile to database...');
+      console.log('🔵 DEBUG: Profile data to insert:', {
+        id: authData.user.id,
+        username: trimmedUsername,
+        email: trimmedEmail,
+      });
+
+      const { data: profileData, error: profileError } = await supabase
         .from('users')
         .insert({
           id: authData.user.id,
           username: trimmedUsername,
           email: trimmedEmail,
-        });
+        })
+        .select()
+        .single();
 
       if (profileError) {
         console.error('❌ DEBUG: Error saving user profile:', profileError);
+        console.error('❌ DEBUG: Profile error details:', {
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          code: profileError.code
+        });
+        
+        // Try to get more information about the error
+        if (profileError.code === 'PGRST116') {
+          console.error('❌ DEBUG: RLS policy violation - user may not have permission to insert');
+        } else if (profileError.code === '23505') {
+          console.error('❌ DEBUG: Unique constraint violation - duplicate key');
+        } else if (profileError.code === '42501') {
+          console.error('❌ DEBUG: Insufficient privilege - RLS or permission issue');
+        }
+        
+        // Check if the user was created in auth but profile failed
+        console.log('🔍 DEBUG: Checking if auth user exists after profile error...');
+        const { data: { user: checkUser } } = await supabase.auth.getUser();
+        console.log('🔍 DEBUG: Auth user after profile error:', checkUser?.id || 'null');
+        
         return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
       }
+
+      console.log('✅ DEBUG: User profile saved successfully');
+      console.log('🔵 DEBUG: Profile data returned:', profileData);
 
       // Step 5: Configure session persistence based on rememberMe
       if (authData.session) {
@@ -248,6 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
     } catch (err: any) {
       console.error('❌ DEBUG: Signup error:', err);
+      console.error('❌ DEBUG: Error stack:', err.stack);
       
       let errorMessage = 'Something went sideways. Try again?';
       
