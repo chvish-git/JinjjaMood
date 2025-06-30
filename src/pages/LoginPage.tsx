@@ -17,6 +17,7 @@ export const LoginPage: React.FC = () => {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [usernameInput, setUsernameInput] = useState('');
+  const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
   const [showPassword, setShowPassword] = useState(false);
   
   // UI state
@@ -91,7 +92,7 @@ export const LoginPage: React.FC = () => {
       
       if (isSignupMode) {
         console.log('🔵 DEBUG: Attempting signup...');
-        result = await signup(emailInput, passwordInput, usernameInput);
+        result = await signup(emailInput, passwordInput, usernameInput, rememberMe);
         
         if (result.success) {
           setSuccessMessage(`Mood locked in. Welcome, ${usernameInput}!`);
@@ -128,7 +129,7 @@ export const LoginPage: React.FC = () => {
         }
       } else {
         console.log('🔵 DEBUG: Attempting login...');
-        result = await login(emailInput, passwordInput);
+        result = await login(emailInput, passwordInput, rememberMe);
         
         if (result.success) {
           setSuccessMessage('Back in the zone.');
@@ -549,6 +550,35 @@ export const LoginPage: React.FC = () => {
                     Minimum 6 characters
                   </p>
                 )}
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className={`h-4 w-4 rounded border-2 transition-all duration-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 ${
+                      isDark 
+                        ? 'bg-white/10 border-white/20 text-purple-600 focus:border-purple-400' 
+                        : 'bg-white border-gray-300 text-purple-600 focus:border-purple-500'
+                    }`}
+                    disabled={isProcessing}
+                  />
+                  <label htmlFor="remember-me" className={`ml-2 block text-sm font-medium ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Remember me
+                  </label>
+                </div>
+                
+                {/* Session info */}
+                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {rememberMe ? 'Stay signed in' : 'Sign out when browser closes'}
+                </div>
               </div>
 
               <button

@@ -17,8 +17,8 @@ interface AuthContextType {
   loading: boolean;
   authLoading: boolean;
   error: string | null;
-  signup: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, username: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
+  const signup = async (email: string, password: string, username: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
     // Validation with witty messages
     if (!email || email.trim().length === 0) {
       return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
@@ -224,6 +224,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
       }
 
+      // Step 5: Configure session persistence based on rememberMe
+      if (authData.session) {
+        console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
+        
+        // Configure session storage type
+        await supabase.auth.setSession({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token
+        });
+
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem('jinjjamood_rememberMe', 'true');
+        } else {
+          localStorage.setItem('jinjjamood_rememberMe', 'false');
+          // For non-persistent sessions, we'll handle this in the logout function
+        }
+      }
+
       console.log('✅ DEBUG: Signup completed successfully');
       return { success: true };
       
@@ -245,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
     // Validation with witty messages
     if (!email || email.trim().length === 0) {
       return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
@@ -296,6 +315,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!data.user) {
         return { success: false, error: 'Login failed. The servers are being moody.' };
+      }
+
+      // Configure session persistence based on rememberMe
+      if (data.session) {
+        console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
+        
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem('jinjjamood_rememberMe', 'true');
+        } else {
+          localStorage.setItem('jinjjamood_rememberMe', 'false');
+          // For non-persistent sessions, we'll handle this in the logout function
+        }
       }
 
       console.log('✅ DEBUG: Login completed successfully for userId:', data.user.id);
@@ -398,9 +430,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: data?.error || 'Account deletion failed. The servers are being stubborn.' };
       }
       
-      // Clear local state
+      // Clear local state and session data
       setUserProfile(null);
       localStorage.removeItem('jinjjamood_currentUser');
+      localStorage.removeItem('jinjjamood_rememberMe');
       
       // The auth state will be updated automatically by the auth listener
       console.log('✅ DEBUG: Account deleted successfully');
@@ -416,8 +449,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🟡 DEBUG: AuthContext logout() function started');
     
     try {
+      // Check if user wanted to be remembered
+      const rememberMe = localStorage.getItem('jinjjamood_rememberMe') === 'true';
+      console.log('🟡 DEBUG: Remember me preference:', rememberMe);
+      
       // Clear localStorage first
       localStorage.removeItem('jinjjamood_currentUser');
+      localStorage.removeItem('jinjjamood_rememberMe');
       console.log('🟡 DEBUG: localStorage cleared');
       
       // Sign out from Supabase Auth
