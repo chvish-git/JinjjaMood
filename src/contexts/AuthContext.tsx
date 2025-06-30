@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { db, auth } from '../config/firebase';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../config/supabase';
 import toast from 'react-hot-toast';
 
 interface UserProfile {
-  uid: string;
+  id: string;
   username: string;
   email: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 interface AuthContextType {
@@ -43,17 +42,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🔵 DEBUG: Setting up Firebase Auth listener');
+    console.log('🔵 DEBUG: Setting up Supabase Auth listener');
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔵 DEBUG: Auth state changed, user:', user?.uid || 'null');
-      setCurrentUser(user);
-      
-      if (user) {
-        // User is signed in, load their profile
-        await loadUserProfile(user.uid);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔵 DEBUG: Initial session:', session?.user?.id || 'null');
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        loadUserProfile(session.user.id);
       } else {
-        // User is signed out
+        setAuthLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔵 DEBUG: Auth state changed, event:', event, 'user:', session?.user?.id || 'null');
+      setCurrentUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await loadUserProfile(session.user.id);
+      } else {
         setUserProfile(null);
         localStorage.removeItem('jinjjamood_currentUser');
       }
@@ -61,24 +70,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserProfile = async (uid: string) => {
+  const loadUserProfile = async (userId: string) => {
     try {
-      console.log('🔵 DEBUG: Loading user profile for uid:', uid);
+      console.log('🔵 DEBUG: Loading user profile for userId:', userId);
       
-      // Get user document using UID
-      const userDocRef = doc(db, 'users', uid);
-      const userDoc = await getDoc(userDocRef);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
       
-      if (userDoc.exists()) {
-        const data = userDoc.data();
+      if (error) {
+        console.error('❌ DEBUG: Error loading user profile:', error);
+        setUserProfile(null);
+        return;
+      }
+
+      if (data) {
         const profile = {
-          uid: uid,
+          id: data.id,
           username: data.username,
           email: data.email,
-          createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date()
+          created_at: new Date(data.created_at)
         };
         setUserProfile(profile);
         
@@ -87,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('✅ DEBUG: User profile loaded successfully');
       } else {
-        console.log('⚠️ DEBUG: User document does not exist in Firestore');
+        console.log('⚠️ DEBUG: User profile not found');
         setUserProfile(null);
         localStorage.removeItem('jinjjamood_currentUser');
       }
@@ -158,83 +174,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Step 1: Check if username is already taken
       console.log('🔵 DEBUG: Checking if username is available...');
-      const usernameQuery = query(
-        collection(db, 'usernames'),
-        where('username', '==', trimmedUsername)
-      );
-      const usernameSnapshot = await getDocs(usernameQuery);
+      const { data: existingUser, error: usernameCheckError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', trimmedUsername)
+        .single();
       
-      if (!usernameSnapshot.empty) {
+      if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+        console.error('❌ DEBUG: Error checking username:', usernameCheckError);
+        return { success: false, error: 'Failed to check username availability. Try again?' };
+      }
+
+      if (existingUser) {
         console.log('❌ DEBUG: Username already taken:', trimmedUsername);
         return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
       }
 
-      // Step 2: Create Firebase account
-      console.log('🔵 DEBUG: Creating Firebase account...');
-      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
-      const user = userCredential.user;
-      console.log('✅ DEBUG: Firebase account created, uid:', user.uid);
+      // Step 2: Create Supabase account
+      console.log('🔵 DEBUG: Creating Supabase account...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
 
-      // Step 2.5: CRITICAL FIX - Force refresh the auth token and wait for it
-      console.log('🔵 DEBUG: Refreshing auth token and waiting for propagation...');
-      await user.getIdToken(true);
-      
-      // Additional wait to ensure Firestore has the updated token
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('✅ DEBUG: Auth token refreshed and propagated');
-
-      // Step 3: Save user profile with retry logic
-      console.log('🔵 DEBUG: Saving user profile...');
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (retryCount < maxRetries) {
-        try {
-          await setDoc(doc(db, 'users', user.uid), {
-            username: trimmedUsername,
-            email: trimmedEmail,
-            createdAt: serverTimestamp()
-          });
-          console.log('✅ DEBUG: User profile saved successfully');
-          break;
-        } catch (profileError: any) {
-          retryCount++;
-          console.log(`⚠️ DEBUG: Profile save attempt ${retryCount} failed:`, profileError.message);
-          
-          if (retryCount >= maxRetries) {
-            throw profileError;
-          }
-          
-          // Wait before retry and refresh token again
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await user.getIdToken(true);
+      if (authError) {
+        console.error('❌ DEBUG: Supabase auth error:', authError);
+        
+        if (authError.message.includes('already registered')) {
+          return { success: false, error: 'This email already joined the vibe. Try logging in.' };
         }
+        
+        return { success: false, error: authError.message || 'Failed to create account. Try again?' };
       }
 
-      // Step 4: Reserve the username with retry logic
-      console.log('🔵 DEBUG: Reserving username...');
-      retryCount = 0;
-      
-      while (retryCount < maxRetries) {
-        try {
-          await setDoc(doc(db, 'usernames', trimmedUsername), {
-            uid: user.uid,
-            username: trimmedUsername
-          });
-          console.log('✅ DEBUG: Username reserved successfully');
-          break;
-        } catch (usernameError: any) {
-          retryCount++;
-          console.log(`⚠️ DEBUG: Username reservation attempt ${retryCount} failed:`, usernameError.message);
-          
-          if (retryCount >= maxRetries) {
-            throw usernameError;
-          }
-          
-          // Wait before retry and refresh token again
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await user.getIdToken(true);
-        }
+      if (!authData.user) {
+        return { success: false, error: 'Failed to create account. Try again?' };
+      }
+
+      console.log('✅ DEBUG: Supabase account created, userId:', authData.user.id);
+
+      // Step 3: Save user profile
+      console.log('🔵 DEBUG: Saving user profile...');
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          username: trimmedUsername,
+          email: trimmedEmail,
+        });
+
+      if (profileError) {
+        console.error('❌ DEBUG: Error saving user profile:', profileError);
+        return { success: false, error: 'Failed to create profile. Try again?' };
       }
 
       console.log('✅ DEBUG: Signup completed successfully');
@@ -243,20 +234,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('❌ DEBUG: Signup error:', err);
       
-      // Witty error messages based on Firebase error codes
       let errorMessage = 'Something went sideways. Try again?';
       
-      if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email already joined the vibe. Try logging in.';
-      } else if (err.code === 'auth/weak-password') {
-        errorMessage = 'That password\'s weaker than decaf coffee. Beef it up!';
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'That email looks fake. Give us a real one!';
-      } else if (err.code === 'permission-denied') {
-        errorMessage = 'Permission denied. The vibes are off today.';
-      } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Mood radar\'s down. Try again in a sec?';
-      } else if (err.message) {
+      if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
       
@@ -282,7 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'Firestore offline. The vibes are off today.' };
+      return { success: false, error: 'You\'re offline. The vibes are off today.' };
     }
 
     try {
@@ -291,48 +271,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
 
-      // Step 1: Sign in with email and password
-      console.log('🔵 DEBUG: Signing in with email and password...');
-      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
-      const user = userCredential.user;
-      console.log('✅ DEBUG: Firebase login successful, uid:', user.uid);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
 
-      // Step 2: Fetch username (optional, but good for UX)
-      console.log('🔵 DEBUG: Fetching user profile...');
-      const userProfile = await getDoc(doc(db, 'users', user.uid));
-      if (!userProfile.exists()) {
-        console.log('⚠️ DEBUG: User profile not found');
-        return { success: false, error: 'Profile went missing. Something\'s broken.' };
+      if (error) {
+        console.error('❌ DEBUG: Login error:', error);
+        
+        let errorMessage = 'Login failed. Try again?';
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'No account with that email or wrong password. Double-check?';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and confirm your account first.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Too many tries. Chill for a bit and come back.';
+        }
+        
+        return { success: false, error: errorMessage };
       }
 
-      const username = userProfile.data().username;
-      console.log('✅ DEBUG: Login completed successfully for username:', username);
-      
+      if (!data.user) {
+        return { success: false, error: 'Login failed. Try again?' };
+      }
+
+      console.log('✅ DEBUG: Login completed successfully for userId:', data.user.id);
       return { success: true };
       
     } catch (err: any) {
       console.error('❌ DEBUG: Login error:', err);
       
-      // Witty error messages based on Firebase error codes
       let errorMessage = 'Login failed. Try again?';
       
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account with that email. Feeling new? Try signing up.';
-      } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'That ain\'t the one. Try again?';
-      } else if (err.code === 'auth/invalid-credential') {
-        errorMessage = 'No account with that email. Feeling new? Try signing up.';
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'That email looks sus. Double-check it?';
-      } else if (err.code === 'auth/user-disabled') {
-        errorMessage = 'Account\'s been disabled. Contact support if you think this is wrong.';
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many tries. Chill for a bit and come back.';
-      } else if (err.code === 'permission-denied') {
-        errorMessage = 'Permission denied. The vibes are off today.';
-      } else if (err.code === 'unavailable' || err.message?.includes('offline')) {
-        errorMessage = 'Firestore offline. The vibes are off today.';
-      } else if (err.message) {
+      if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
       
@@ -344,7 +316,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.uid) {
+    if (!userProfile?.id) {
       return { success: false, error: 'You\'re not logged in. That\'s a problem.' };
     }
 
@@ -371,33 +343,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Check if new username is already taken
-      const usernameQuery = query(
-        collection(db, 'usernames'),
-        where('username', '==', trimmedUsername)
-      );
-      const usernameSnapshot = await getDocs(usernameQuery);
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', trimmedUsername)
+        .neq('id', userProfile.id)
+        .single();
       
-      if (!usernameSnapshot.empty) {
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking username:', checkError);
+        return { success: false, error: 'Failed to check username availability. Try again?' };
+      }
+
+      if (existingUser) {
         return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 
       // Update user profile
-      const userDocRef = doc(db, 'users', userProfile.uid);
-      await setDoc(userDocRef, {
-        username: trimmedUsername,
-        email: userProfile.email,
-        createdAt: userProfile.createdAt
-      });
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ username: trimmedUsername })
+        .eq('id', userProfile.id);
 
-      // Delete old username reservation
-      const oldUsernameDocRef = doc(db, 'usernames', userProfile.username);
-      await deleteDoc(oldUsernameDocRef);
-
-      // Create new username reservation
-      await setDoc(doc(db, 'usernames', trimmedUsername), {
-        uid: userProfile.uid,
-        username: trimmedUsername
-      });
+      if (updateError) {
+        console.error('Error updating username:', updateError);
+        return { success: false, error: 'Username update failed. The servers are being moody.' };
+      }
 
       // Update local state
       const updatedProfile = {
@@ -417,35 +388,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!userProfile?.uid || !currentUser) {
+    if (!userProfile?.id || !currentUser) {
       return { success: false, error: 'You\'re not logged in. Can\'t delete what doesn\'t exist.' };
     }
 
     try {
       // Delete all mood logs for this user
-      const moodLogsQuery = query(
-        collection(db, 'moodLogs'),
-        where('uid', '==', userProfile.uid)
-      );
-      const moodLogsSnapshot = await getDocs(moodLogsQuery);
-      
-      const deletePromises = moodLogsSnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
+      const { error: moodLogsError } = await supabase
+        .from('mood_logs')
+        .delete()
+        .eq('user_id', userProfile.id);
 
-      // Delete username reservation
-      const usernameDocRef = doc(db, 'usernames', userProfile.username);
-      await deleteDoc(usernameDocRef);
+      if (moodLogsError) {
+        console.error('Error deleting mood logs:', moodLogsError);
+        return { success: false, error: 'Failed to delete mood data. Try again?' };
+      }
 
-      // Delete user profile from Firestore
-      const userDocRef = doc(db, 'users', userProfile.uid);
-      await deleteDoc(userDocRef);
+      // Delete user profile
+      const { error: profileError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userProfile.id);
+
+      if (profileError) {
+        console.error('Error deleting user profile:', profileError);
+        return { success: false, error: 'Failed to delete profile. Try again?' };
+      }
       
       // Clear local state
       setUserProfile(null);
       localStorage.removeItem('jinjjamood_currentUser');
       
-      // Delete Firebase Auth account
-      await currentUser.delete();
+      // Delete Supabase Auth account
+      const { error: authError } = await supabase.auth.admin.deleteUser(currentUser.id);
+      
+      if (authError) {
+        console.error('Error deleting auth account:', authError);
+        // Continue anyway since profile is deleted
+      }
+      
+      // Sign out
+      await supabase.auth.signOut();
       
       return { success: true };
     } catch (error: any) {
@@ -462,11 +445,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('jinjjamood_currentUser');
       console.log('🟡 DEBUG: localStorage cleared');
       
-      // Sign out from Firebase Auth
-      await signOut(auth);
-      console.log('✅ DEBUG: Firebase signOut successful');
+      // Sign out from Supabase Auth
+      const { error } = await supabase.auth.signOut();
       
-      // Clear user profile state (Firebase auth listener will handle currentUser)
+      if (error) {
+        console.error('❌ DEBUG: Error during logout:', error);
+        setError('Logout failed. The servers are being clingy.');
+        toast.error('Logout failed. The servers are being clingy.');
+        return;
+      }
+      
+      console.log('✅ DEBUG: Supabase signOut successful');
+      
+      // Clear user profile state (auth listener will handle currentUser)
       setUserProfile(null);
       console.log('🟡 DEBUG: setUserProfile(null) called');
       

@@ -1,14 +1,12 @@
 import { MoodLog } from '../types/mood';
-import { collection, addDoc, query, orderBy, getDocs, where, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { startOfDay, endOfDay, format } from 'date-fns';
+import { supabase } from '../config/supabase';
+import { format } from 'date-fns';
 import { getMoodOption, getMoodValue } from '../data/moodOptions';
 
-const COLLECTION_NAME = 'moodLogs';
 const DAILY_MOOD_LIMIT = 5;
 
-export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimit: boolean; count: number }> => {
-  if (!uid) {
+export const checkDailyMoodLimit = async (userId: string): Promise<{ hasReachedLimit: boolean; count: number }> => {
+  if (!userId) {
     return { hasReachedLimit: false, count: 0 };
   }
 
@@ -16,15 +14,19 @@ export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimi
     const today = new Date();
     const todayString = format(today, 'yyyy-MM-dd');
 
-    // Use the day field for efficient querying
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('uid', '==', uid),
-      where('day', '==', todayString)
-    );
+    // Query mood logs for today
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('day', todayString);
     
-    const querySnapshot = await getDocs(q);
-    const count = querySnapshot.size;
+    if (error) {
+      console.error('Error checking daily mood limit:', error);
+      throw error;
+    }
+    
+    const count = data?.length || 0;
     
     return { 
       hasReachedLimit: count >= DAILY_MOOD_LIMIT, 
@@ -33,13 +35,8 @@ export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimi
   } catch (error: any) {
     console.error('Error checking daily mood limit:', error);
     
-    // Re-throw permission-denied errors to ensure they're handled properly
-    if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
-    }
-    
-    // Fallback to localStorage check for other errors
-    const localResult = checkDailyMoodLimitLocal(uid);
+    // Fallback to localStorage check
+    const localResult = checkDailyMoodLimitLocal(userId);
     return { 
       hasReachedLimit: localResult, 
       count: localResult ? DAILY_MOOD_LIMIT : 0 
@@ -47,13 +44,13 @@ export const checkDailyMoodLimit = async (uid: string): Promise<{ hasReachedLimi
   }
 };
 
-export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, uid: string): Promise<MoodLog> => {
-  if (!uid) {
+export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, userId: string): Promise<MoodLog> => {
+  if (!userId) {
     throw new Error('User ID is required to save mood logs');
   }
 
   // Check if user has reached daily limit
-  const { hasReachedLimit, count } = await checkDailyMoodLimit(uid);
+  const { hasReachedLimit, count } = await checkDailyMoodLimit(userId);
   if (hasReachedLimit) {
     throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
   }
@@ -63,116 +60,126 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
     const now = new Date();
     const moodOption = getMoodOption(moodLog.mood as any);
     
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...moodLog,
-      uid: uid,
-      timestamp: serverTimestamp(),
+    const logData = {
+      user_id: userId,
+      mood: moodLog.mood,
+      mood_type: moodOption?.type || 'neutral',
+      journal_entry: moodLog.journalEntry || '',
+      timestamp: now.toISOString(),
       day: format(now, 'yyyy-MM-dd'),
       hour: now.getHours(),
-      moodType: moodOption?.type || 'neutral',
-      readableDate: now.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      })
-    });
+    };
+
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .insert(logData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving mood log:', error);
+      throw error;
+    }
 
     return {
-      ...moodLog,
-      id: docRef.id,
-      timestamp: now,
-      day: format(now, 'yyyy-MM-dd'),
-      hour: now.getHours(),
-      moodType: moodOption?.type || 'neutral'
+      id: data.id,
+      mood: data.mood,
+      moodType: data.mood_type as any,
+      journalEntry: data.journal_entry,
+      timestamp: new Date(data.timestamp),
+      day: data.day,
+      hour: data.hour
     };
   } catch (error: any) {
     console.error('Error saving mood log:', error);
     
-    // Re-throw permission-denied errors to ensure they're handled properly
-    if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
-    }
-    
     // Fallback to localStorage
-    return saveMoodLogLocal(moodLog, uid);
+    return saveMoodLogLocal(moodLog, userId);
   }
 };
 
-export const getMoodLogs = async (uid: string): Promise<MoodLog[]> => {
-  if (!uid) {
-    return getMoodLogsLocal(uid);
+export const getMoodLogs = async (userId: string): Promise<MoodLog[]> => {
+  if (!userId) {
+    return getMoodLogsLocal(userId);
   }
 
   try {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('uid', '==', uid)
-    );
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false });
     
-    const querySnapshot = await getDocs(q);
-    const logs: MoodLog[] = [];
+    if (error) {
+      console.error('Error fetching mood logs:', error);
+      throw error;
+    }
     
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      logs.push({
-        id: doc.id,
-        mood: data.mood,
-        moodType: data.moodType || 'neutral',
-        journalEntry: data.journalEntry,
-        timestamp: data.timestamp.toDate(),
-        day: data.day || format(data.timestamp.toDate(), 'yyyy-MM-dd'),
-        hour: data.hour || data.timestamp.toDate().getHours()
-      });
-    });
-    
-    // Sort client-side
-    logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    const logs: MoodLog[] = (data || []).map(log => ({
+      id: log.id,
+      mood: log.mood,
+      moodType: log.mood_type as any,
+      journalEntry: log.journal_entry,
+      timestamp: new Date(log.timestamp),
+      day: log.day,
+      hour: log.hour
+    }));
     
     return logs;
   } catch (error: any) {
     console.error('Error fetching mood logs:', error);
-    
-    // Re-throw permission-denied errors to ensure they're handled properly
-    if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
-    }
-    
-    return getMoodLogsLocal(uid);
+    return getMoodLogsLocal(userId);
   }
 };
 
-export const getLatestMoodLog = async (uid: string): Promise<MoodLog | null> => {
-  if (!uid) {
-    return getLatestMoodLogLocal(uid);
+export const getLatestMoodLog = async (userId: string): Promise<MoodLog | null> => {
+  if (!userId) {
+    return getLatestMoodLogLocal(userId);
   }
 
   try {
-    const logs = await getMoodLogs(uid);
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .single();
     
-    if (logs.length === 0) {
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return null;
+      }
+      console.error('Error fetching latest mood log:', error);
+      throw error;
+    }
+    
+    if (!data) {
       return null;
     }
     
-    return logs[0];
+    return {
+      id: data.id,
+      mood: data.mood,
+      moodType: data.mood_type as any,
+      journalEntry: data.journal_entry,
+      timestamp: new Date(data.timestamp),
+      day: data.day,
+      hour: data.hour
+    };
   } catch (error: any) {
     console.error('Error fetching latest mood log:', error);
-    
-    // Re-throw permission-denied errors to ensure they're handled properly
-    if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
-    }
-    
-    return getLatestMoodLogLocal(uid);
+    return getLatestMoodLogLocal(userId);
   }
 };
 
 export const getMoodLogsByDateRange = async (
-  uid: string, 
+  userId: string, 
   startDate: Date, 
   endDate: Date
 ): Promise<MoodLog[]> => {
-  if (!uid) {
+  if (!userId) {
     return [];
   }
 
@@ -180,38 +187,32 @@ export const getMoodLogsByDateRange = async (
     const startDay = format(startDate, 'yyyy-MM-dd');
     const endDay = format(endDate, 'yyyy-MM-dd');
 
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('uid', '==', uid),
-      where('day', '>=', startDay),
-      where('day', '<=', endDay)
-    );
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('day', startDay)
+      .lte('day', endDay)
+      .order('timestamp', { ascending: false });
     
-    const querySnapshot = await getDocs(q);
-    const logs: MoodLog[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      logs.push({
-        id: doc.id,
-        mood: data.mood,
-        moodType: data.moodType || 'neutral',
-        journalEntry: data.journalEntry,
-        timestamp: data.timestamp.toDate(),
-        day: data.day,
-        hour: data.hour || data.timestamp.toDate().getHours()
-      });
-    });
-    
-    return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  } catch (error: any) {
-    console.error('Error fetching mood logs by date range:', error);
-    
-    // Re-throw permission-denied errors to ensure they're handled properly
-    if (error.code === 'permission-denied') {
-      throw new Error('Firebase permission error: Please ensure you are properly authenticated.');
+    if (error) {
+      console.error('Error fetching mood logs by date range:', error);
+      throw error;
     }
     
+    const logs: MoodLog[] = (data || []).map(log => ({
+      id: log.id,
+      mood: log.mood,
+      moodType: log.mood_type as any,
+      journalEntry: log.journal_entry,
+      timestamp: new Date(log.timestamp),
+      day: log.day,
+      hour: log.hour
+    }));
+    
+    return logs;
+  } catch (error: any) {
+    console.error('Error fetching mood logs by date range:', error);
     return [];
   }
 };
@@ -219,21 +220,21 @@ export const getMoodLogsByDateRange = async (
 // Fallback localStorage functions
 const STORAGE_KEY = 'jinjjamood_logs';
 
-const checkDailyMoodLimitLocal = (uid: string): boolean => {
-  const logs = getMoodLogsLocal(uid);
+const checkDailyMoodLimitLocal = (userId: string): boolean => {
+  const logs = getMoodLogsLocal(userId);
   const today = format(new Date(), 'yyyy-MM-dd');
   
   const todayLogs = logs.filter(log => log.day === today);
   return todayLogs.length >= DAILY_MOOD_LIMIT;
 };
 
-const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, uid: string): MoodLog => {
-  const hasReachedLimit = checkDailyMoodLimitLocal(uid);
+const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, userId: string): MoodLog => {
+  const hasReachedLimit = checkDailyMoodLimitLocal(userId);
   if (hasReachedLimit) {
     throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
   }
 
-  const logs = getMoodLogsLocal(uid);
+  const logs = getMoodLogsLocal(userId);
   const now = new Date();
   const moodOption = getMoodOption(moodLog.mood as any);
   
@@ -247,13 +248,13 @@ const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodTy
   };
   
   logs.push(newLog);
-  localStorage.setItem(`${STORAGE_KEY}_${uid}`, JSON.stringify(logs));
+  localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(logs));
   return newLog;
 };
 
-const getMoodLogsLocal = (uid: string): MoodLog[] => {
+const getMoodLogsLocal = (userId: string): MoodLog[] => {
   try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${uid}`);
+    const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
     if (!stored) return [];
     
     const logs = JSON.parse(stored);
@@ -270,8 +271,8 @@ const getMoodLogsLocal = (uid: string): MoodLog[] => {
   }
 };
 
-const getLatestMoodLogLocal = (uid: string): MoodLog | null => {
-  const logs = getMoodLogsLocal(uid);
+const getLatestMoodLogLocal = (userId: string): MoodLog | null => {
+  const logs = getMoodLogsLocal(userId);
   if (logs.length === 0) return null;
   
   return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
