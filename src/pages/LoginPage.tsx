@@ -205,6 +205,7 @@ export const LoginPage: React.FC = () => {
     setUsernameInput(value);
     setErrorMessage('');
     setSuccessMessage('');
+    setShowLoginHelp(false);
     
     // Real-time validation
     const error = validateUsername(value);
@@ -557,16 +558,16 @@ export const LoginPage: React.FC = () => {
                     : 'bg-gradient-to-r from-purple-600 to-pink-600'
                 }`}></div>
                 
-                <span className="relative flex items-center justify-center gap-3">
+                <span className="relative flex items-center justify-center gap-3 text-white font-bold">
                   {isProcessing ? (
                     <>
-                      <Loader className="animate-spin h-5 w-5" />
-                      {isSignupMode ? 'Creating Account...' : 'Signing In...'}
+                      <Loader className="animate-spin h-5 w-5 text-white" />
+                      <span className="text-white">{isSignupMode ? 'Creating Account...' : 'Signing In...'}</span>
                     </>
                   ) : (
                     <>
-                      {isSignupMode ? 'Let\'s vibe' : 'Enter the mood zone'}
-                      <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
+                      <span className="text-white">{isSignupMode ? 'Let\'s vibe' : 'Enter the mood zone'}</span>
+                      <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300 text-white" />
                     </>
                   )}
                 </span>
