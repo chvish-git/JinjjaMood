@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
+import { checkEmailExists, checkUsernameExists, findUserByEmail, checkUsernameAvailableForUpdate } from '../utils/userSearch';
 import toast from 'react-hot-toast';
 
 interface UserProfile {
@@ -144,12 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
     }
 
-    // Check for reserved usernames
-    const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
-    if (reservedNames.includes(trimmedUsername)) {
-      return { success: false, error: 'That username\'s off limits. Pick something more creative!' };
-    }
-
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
@@ -172,25 +167,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting signup process for username:', trimmedUsername);
 
-      // Step 1: Check if username is already taken
-      console.log('🔵 DEBUG: Checking if username is available...');
-      const { data: existingUser, error: usernameCheckError } = await supabase
-        .from('users')
-        .select('username')
-        .eq('username', trimmedUsername)
-        .limit(1);
-      
-      if (usernameCheckError) {
-        console.error('❌ DEBUG: Error checking username:', usernameCheckError);
-        return { success: false, error: 'Permission denied. The vibes are off today.' };
+      // Step 1: Check if email already exists
+      console.log('🔍 DEBUG: Checking if email exists...');
+      const emailCheck = await checkEmailExists(trimmedEmail);
+      if (emailCheck.exists) {
+        console.log('❌ DEBUG: Email already exists:', trimmedEmail);
+        return { success: false, error: emailCheck.message || 'You\'ve been here before. Wanna log in instead?' };
       }
 
-      if (existingUser && existingUser.length > 0) {
+      // Step 2: Check if username is already taken
+      console.log('🔍 DEBUG: Checking if username is available...');
+      const usernameCheck = await checkUsernameExists(trimmedUsername);
+      if (usernameCheck.exists) {
         console.log('❌ DEBUG: Username already taken:', trimmedUsername);
-        return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
+        return { success: false, error: usernameCheck.message || 'That name\'s already vibin\' with someone else. Try another.' };
       }
 
-      // Step 2: Create Supabase account
+      // Step 3: Create Supabase account
       console.log('🔵 DEBUG: Creating Supabase account...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: trimmedEmail,
@@ -213,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('✅ DEBUG: Supabase account created, userId:', authData.user.id);
 
-      // Step 3: Save user profile
+      // Step 4: Save user profile
       console.log('🔵 DEBUG: Saving user profile...');
       const { error: profileError } = await supabase
         .from('users')
@@ -273,6 +266,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
 
+      // Step 1: Check if user exists in our database first
+      console.log('🔍 DEBUG: Checking if user exists in database...');
+      const userSearch = await findUserByEmail(trimmedEmail);
+      
+      if (!userSearch.found) {
+        console.log('❌ DEBUG: User not found in database:', trimmedEmail);
+        return { success: false, error: userSearch.message || 'No account with that email. Feeling new? Try signing up.' };
+      }
+
+      // Step 2: Attempt Supabase authentication
+      console.log('🔵 DEBUG: Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: trimmedPassword,
@@ -284,7 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let errorMessage = 'Login failed. The servers are being moody.';
         
         if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'No account with that email. Feeling new? Try signing up.';
+          errorMessage = 'That ain\'t the one. Try again?';
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'Check your email and confirm your account first, bestie.';
         } else if (error.message.includes('Too many requests')) {
@@ -326,44 +330,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const trimmedUsername = newUsername.trim().toLowerCase();
     
-    // Basic validation with witty messages
-    if (trimmedUsername.length < 2) {
-      return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
-    }
-    
-    if (trimmedUsername.length > 20) {
-      return { success: false, error: 'Username\'s too long. Keep it snappy!' };
-    }
-    
-    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
-    }
-
-    // Check for reserved usernames
-    const reservedNames = ['admin', 'null', 'undefined', 'root', 'system', 'api', 'www', 'mail', 'ftp'];
-    if (reservedNames.includes(trimmedUsername)) {
-      return { success: false, error: 'That username\'s off limits. Pick something more creative!' };
-    }
-
     try {
-      // Check if new username is already taken
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('username')
-        .eq('username', trimmedUsername)
-        .neq('id', userProfile.id)
-        .limit(1);
+      // Check if new username is available for this user
+      console.log('🔍 DEBUG: Checking username availability for update...');
+      const availabilityCheck = await checkUsernameAvailableForUpdate(trimmedUsername, userProfile.id);
       
-      if (checkError) {
-        console.error('Error checking username:', checkError);
-        return { success: false, error: 'Permission denied. The vibes are off today.' };
-      }
-
-      if (existingUser && existingUser.length > 0) {
-        return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
+      if (availabilityCheck.exists) {
+        console.log('❌ DEBUG: Username not available for update:', trimmedUsername);
+        return { success: false, error: availabilityCheck.message || 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 
       // Update user profile
+      console.log('🔵 DEBUG: Updating username in database...');
       const { error: updateError } = await supabase
         .from('users')
         .update({ username: trimmedUsername })
@@ -384,6 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update localStorage
       localStorage.setItem('jinjjamood_currentUser', JSON.stringify(updatedProfile));
 
+      console.log('✅ DEBUG: Username updated successfully');
       return { success: true };
     } catch (error: any) {
       console.error('Error updating username:', error);
