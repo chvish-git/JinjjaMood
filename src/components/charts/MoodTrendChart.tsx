@@ -1,34 +1,13 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { MoodLog } from '../../types/mood';
+import { getMoodValue } from '../../data/moodOptions';
 
 interface MoodTrendChartProps {
   logs: MoodLog[];
   isDark: boolean;
 }
-
-const getMoodValue = (mood: string): number => {
-  const valueMap: { [key: string]: number } = {
-    'Sad': 1,
-    'Stressed': 2,
-    'Neutral': 3,
-    'Good': 4,
-    'Hyped': 5
-  };
-  return valueMap[mood] || 3;
-};
-
-const getMoodLabel = (value: number): string => {
-  const labelMap: { [key: number]: string } = {
-    1: 'Sad',
-    2: 'Stressed',
-    3: 'Neutral',
-    4: 'Good',
-    5: 'Hyped'
-  };
-  return labelMap[value] || 'Neutral';
-};
 
 export const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ logs, isDark }) => {
   // Prepare data for the chart
@@ -42,6 +21,14 @@ export const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ logs, isDark }) 
       entry: index + 1,
       timestamp: log.timestamp
     }));
+
+  const getMoodLabel = (value: number): string => {
+    if (value >= 4.5) return 'Excellent';
+    if (value >= 3.5) return 'Good';
+    if (value >= 2.5) return 'Neutral';
+    if (value >= 1.5) return 'Low';
+    return 'Very Low';
+  };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

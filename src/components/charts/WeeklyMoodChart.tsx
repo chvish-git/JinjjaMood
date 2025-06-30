@@ -2,22 +2,12 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { MoodLog } from '../../types/mood';
+import { getMoodValue } from '../../data/moodOptions';
 
 interface WeeklyMoodChartProps {
   logs: MoodLog[];
   isDark: boolean;
 }
-
-const getMoodValue = (mood: string): number => {
-  const valueMap: { [key: string]: number } = {
-    'Sad': 1,
-    'Stressed': 2,
-    'Neutral': 3,
-    'Good': 4,
-    'Hyped': 5
-  };
-  return valueMap[mood] || 3;
-};
 
 const getDayName = (dayIndex: number): string => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

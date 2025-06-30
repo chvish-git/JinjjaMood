@@ -529,3 +529,55 @@ select option {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* LIGHT MODE TEXT CONTRAST FIXES */
+/* Ensure dark text in light mode for better readability */
+.light-mode-text {
+  color: #1f2937 !important; /* Dark gray for light backgrounds */
+}
+
+/* Light mode specific overrides */
+:root:not(.dark) .text-primary {
+  color: #1f2937 !important;
+}
+
+:root:not(.dark) .text-secondary {
+  color: #374151 !important;
+}
+
+:root:not(.dark) .text-muted {
+  color: #6b7280 !important;
+}
+
+/* Ensure proper contrast in light mode components */
+:root:not(.dark) h1,
+:root:not(.dark) h2,
+:root:not(.dark) h3,
+:root:not(.dark) h4,
+:root:not(.dark) h5,
+:root:not(.dark) h6 {
+  color: #1f2937 !important;
+}
+
+:root:not(.dark) p {
+  color: #374151 !important;
+}
+
+:root:not(.dark) span {
+  color: #374151 !important;
+}
+
+/* Light mode card text */
+:root:not(.dark) .card-enhanced {
+  color: #1f2937 !important;
+}
+
+/* Light mode navigation text */
+:root:not(.dark) nav {
+  color: #1f2937 !important;
+}
+
+/* Light mode button text (when not using gradients) */
+:root:not(.dark) button:not(.btn-primary) {
+  color: #1f2937 !important;
+}

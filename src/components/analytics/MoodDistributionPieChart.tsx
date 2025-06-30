@@ -9,29 +9,40 @@ interface MoodDistributionPieChartProps {
 }
 
 export const MoodDistributionPieChart: React.FC<MoodDistributionPieChartProps> = ({ logs, isDark }) => {
-  // Calculate mood distribution
-  const moodCounts = logs.reduce((acc, log) => {
-    acc[log.mood] = (acc[log.mood] || 0) + 1;
+  // Calculate mood type distribution (not individual moods)
+  const moodTypeCounts = logs.reduce((acc, log) => {
+    const moodOption = getMoodOption(log.mood as any);
+    const type = moodOption?.type || 'neutral';
+    acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as { [key: string]: number });
 
-  const chartData = Object.entries(moodCounts).map(([mood, count]) => {
-    const moodOption = getMoodOption(mood as any);
+  const chartData = Object.entries(moodTypeCounts).map(([type, count]) => {
     return {
-      name: mood,
+      name: type,
       value: count,
       percentage: ((count / logs.length) * 100).toFixed(1),
-      emoji: moodOption?.emoji || '😐',
-      color: getColorForMoodType(moodOption?.type || 'neutral')
+      emoji: getEmojiForType(type),
+      color: getColorForMoodType(type)
     };
   });
 
+  function getEmojiForType(type: string): string {
+    switch (type) {
+      case 'positive': return '✨';
+      case 'neutral': return '😐';
+      case 'negative': return '💙';
+      case 'bonus': return '🔥';
+      default: return '😐';
+    }
+  }
+
   function getColorForMoodType(type: string): string {
     switch (type) {
-      case 'positive': return '#10B981';
-      case 'bonus': return '#8B5CF6';
-      case 'neutral': return '#6B7280';
-      case 'negative': return '#3B82F6';
+      case 'positive': return '#10B981'; // Green
+      case 'neutral': return '#6B7280'; // Gray
+      case 'negative': return '#3B82F6'; // Blue
+      case 'bonus': return '#8B5CF6'; // Purple
       default: return '#6B7280';
     }
   }
@@ -123,7 +134,7 @@ export const MoodDistributionPieChart: React.FC<MoodDistributionPieChartProps> =
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: entry.color }}
             ></div>
-            <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <span className={`text-sm font-medium capitalize ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {entry.emoji} {entry.name} ({entry.percentage}%)
             </span>
           </div>
