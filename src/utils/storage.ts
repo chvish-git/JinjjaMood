@@ -52,7 +52,7 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
   // Check if user has reached daily limit
   const { hasReachedLimit, count } = await checkDailyMoodLimit(userId);
   if (hasReachedLimit) {
-    throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
+    throw new Error(`Whoa there — max moods reached today. Come back tomorrow.`);
   }
 
   try {
@@ -226,7 +226,7 @@ const checkDailyMoodLimitLocal = (userId: string): boolean => {
 const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, userId: string): MoodLog => {
   const hasReachedLimit = checkDailyMoodLimitLocal(userId);
   if (hasReachedLimit) {
-    throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today. Rest your vibe sensors! 🧠✨`);
+    throw new Error(`Whoa there — max moods reached today. Come back tomorrow.`);
   }
 
   const logs = getMoodLogsLocal(userId);

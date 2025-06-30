@@ -182,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (usernameCheckError) {
         console.error('❌ DEBUG: Error checking username:', usernameCheckError);
-        return { success: false, error: 'Failed to check username availability. Try again?' };
+        return { success: false, error: 'Permission denied. The vibes are off today.' };
       }
 
       if (existingUser && existingUser.length > 0) {
@@ -201,14 +201,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('❌ DEBUG: Supabase auth error:', authError);
         
         if (authError.message.includes('already registered')) {
-          return { success: false, error: 'This email already joined the vibe. Try logging in.' };
+          return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
         }
         
-        return { success: false, error: authError.message || 'Failed to create account. Try again?' };
+        return { success: false, error: authError.message || 'Signup failed. The servers are being moody.' };
       }
 
       if (!authData.user) {
-        return { success: false, error: 'Failed to create account. Try again?' };
+        return { success: false, error: 'Signup failed. The servers are being moody.' };
       }
 
       console.log('✅ DEBUG: Supabase account created, userId:', authData.user.id);
@@ -225,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error('❌ DEBUG: Error saving user profile:', profileError);
-        return { success: false, error: 'Failed to create profile. Try again?' };
+        return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
       }
 
       console.log('✅ DEBUG: Signup completed successfully');
@@ -236,7 +236,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       let errorMessage = 'Something went sideways. Try again?';
       
-      if (err.message) {
+      if (err.message?.includes('offline')) {
+        errorMessage = 'Mood radar\'s down. Try again in a sec?';
+      } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
       
@@ -262,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check network connectivity
     if (!navigator.onLine) {
-      return { success: false, error: 'You\'re offline. The vibes are off today.' };
+      return { success: false, error: 'Mood radar\'s down. Try again in a sec?' };
     }
 
     try {
@@ -279,12 +281,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('❌ DEBUG: Login error:', error);
         
-        let errorMessage = 'Login failed. Try again?';
+        let errorMessage = 'Login failed. The servers are being moody.';
         
         if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'No account with that email or wrong password. Double-check?';
+          errorMessage = 'No account with that email. Feeling new? Try signing up.';
         } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email and confirm your account first.';
+          errorMessage = 'Check your email and confirm your account first, bestie.';
         } else if (error.message.includes('Too many requests')) {
           errorMessage = 'Too many tries. Chill for a bit and come back.';
         }
@@ -293,7 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (!data.user) {
-        return { success: false, error: 'Login failed. Try again?' };
+        return { success: false, error: 'Login failed. The servers are being moody.' };
       }
 
       console.log('✅ DEBUG: Login completed successfully for userId:', data.user.id);
@@ -302,9 +304,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('❌ DEBUG: Login error:', err);
       
-      let errorMessage = 'Login failed. Try again?';
+      let errorMessage = 'Login failed. The servers are being moody.';
       
-      if (err.message) {
+      if (err.message?.includes('offline')) {
+        errorMessage = 'Mood radar\'s down. Try again in a sec?';
+      } else if (err.message) {
         errorMessage = `Error: ${err.message}`;
       }
       
@@ -352,7 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (checkError) {
         console.error('Error checking username:', checkError);
-        return { success: false, error: 'Failed to check username availability. Try again?' };
+        return { success: false, error: 'Permission denied. The vibes are off today.' };
       }
 
       if (existingUser && existingUser.length > 0) {
@@ -401,7 +405,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (moodLogsError) {
         console.error('Error deleting mood logs:', moodLogsError);
-        return { success: false, error: 'Failed to delete mood data. Try again?' };
+        return { success: false, error: 'Failed to delete mood data. The servers are being stubborn.' };
       }
 
       // Delete user profile
@@ -412,7 +416,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error('Error deleting user profile:', profileError);
-        return { success: false, error: 'Failed to delete profile. Try again?' };
+        return { success: false, error: 'Failed to delete profile. The servers are being stubborn.' };
       }
       
       // Clear local state

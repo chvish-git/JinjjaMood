@@ -27,13 +27,13 @@ export const ProfilePage: React.FC = () => {
     setIsVisible(true);
     
     const loadProfileData = async () => {
-      if (!userProfile?.uid) {
+      if (!userProfile?.id) {
         setLoading(false);
         return;
       }
 
       try {
-        const logs = await getMoodLogs(userProfile.uid);
+        const logs = await getMoodLogs(userProfile.id);
         setMoodLogs(logs);
         
         const moodStats = calculateMoodStats(logs);
@@ -46,7 +46,7 @@ export const ProfilePage: React.FC = () => {
     };
 
     loadProfileData();
-  }, [userProfile?.uid]);
+  }, [userProfile?.id]);
 
   const handleEditClick = () => {
     setNewUsername(userProfile?.username || '');
@@ -69,7 +69,7 @@ export const ProfilePage: React.FC = () => {
       const result = await updateUsername(newUsername.trim());
       
       if (result.success) {
-        toast.success('New name, who dis?', {
+        toast.success('Fresh new name. We love a rebrand.', {
           duration: 3000,
           style: {
             background: '#10B981',
@@ -98,7 +98,7 @@ export const ProfilePage: React.FC = () => {
       const result = await deleteAccount();
       
       if (result.success) {
-        toast.success('All cleared. You were never here 👻', {
+        toast.success('Mood erased. ✨ Who even were you?', {
           duration: 4000,
           style: {
             background: '#EF4444',
@@ -131,11 +131,10 @@ export const ProfilePage: React.FC = () => {
 
   const getMoodEmoji = (mood: string) => {
     const emojiMap: { [key: string]: string } = {
-      'Sad': '😢',
-      'Neutral': '😐',
-      'Good': '😊',
-      'Stressed': '😰',
-      'Hyped': '🤩'
+      'joyful': '😊', 'productive': '💪', 'calm': '🧘', 'grateful': '🙏', 'energized': '⚡', 'confident': '✨',
+      'meh': '😑', 'blank': '😶', 'tired': '😴', 'chill': '😎', 'focused': '🎯', 'neutral': '😐',
+      'anxious': '😰', 'angry': '😠', 'stressed': '😵', 'low energy': '🔋', 'overwhelmed': '🌊', 'sad': '😢',
+      'ungovernable': '😈', 'CEO mode': '👑', 'fluff cloud': '☁️', 'main character': '🌟', 'chaos gremlin': '🔥', 'soft launch': '🌸'
     };
     return emojiMap[mood] || '😐';
   };
@@ -276,7 +275,7 @@ export const ProfilePage: React.FC = () => {
                   )}
                   
                   <p className={`text-lg mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Member since {userProfile.createdAt.toLocaleDateString('en-US', { 
+                    Member since {userProfile.created_at.toLocaleDateString('en-US', { 
                       year: 'numeric', 
                       month: 'long', 
                       day: 'numeric' 

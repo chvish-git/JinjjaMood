@@ -110,11 +110,11 @@ export const LoginPage: React.FC = () => {
           setErrorMessage(result.error);
           
           // Show specific toasts for different errors
-          if (result.error.includes('already in the system')) {
+          if (result.error.includes('You\'ve been here before')) {
             toast.error('This email already joined the vibe. Try logging in.', {
               style: { fontWeight: '600' }
             });
-          } else if (result.error.includes('already vibing with that name')) {
+          } else if (result.error.includes('already vibin\' with someone else')) {
             toast.error('That name\'s already vibin\' with someone else. Try another.', {
               style: { fontWeight: '600' }
             });
@@ -147,11 +147,11 @@ export const LoginPage: React.FC = () => {
           setErrorMessage(result.error);
           
           // Show specific toasts for different errors
-          if (result.error.includes('tryna vibe without a ticket')) {
+          if (result.error.includes('No account with that email')) {
             toast.error('No account with that email. Feeling new? Try signing up.', {
               style: { fontWeight: '600' }
             });
-          } else if (result.error.includes('not the password')) {
+          } else if (result.error.includes('wrong password')) {
             toast.error('That ain\'t the one. Try again?', {
               style: { fontWeight: '600' }
             });
