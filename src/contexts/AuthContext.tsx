@@ -175,6 +175,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       console.log('✅ DEBUG: Firebase account created, uid:', user.uid);
 
+      // Step 2.5: Force refresh the auth token to ensure Firestore has the latest auth state
+      console.log('🔵 DEBUG: Refreshing auth token...');
+      await user.getIdToken(true);
+      console.log('✅ DEBUG: Auth token refreshed');
+
       // Step 3: Save user profile
       console.log('🔵 DEBUG: Saving user profile...');
       await setDoc(doc(db, 'users', user.uid), {
