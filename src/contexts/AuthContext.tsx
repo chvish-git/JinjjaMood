@@ -175,24 +175,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       console.log('✅ DEBUG: Firebase account created, uid:', user.uid);
 
-      // Step 2.5: Force refresh the auth token to ensure Firestore has the latest auth state
-      console.log('🔵 DEBUG: Refreshing auth token...');
+      // Step 2.5: CRITICAL FIX - Force refresh the auth token and wait for it
+      console.log('🔵 DEBUG: Refreshing auth token and waiting for propagation...');
       await user.getIdToken(true);
-      console.log('✅ DEBUG: Auth token refreshed');
+      
+      // Additional wait to ensure Firestore has the updated token
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('✅ DEBUG: Auth token refreshed and propagated');
 
-      // Step 3: Save user profile
+      // Step 3: Save user profile with retry logic
       console.log('🔵 DEBUG: Saving user profile...');
-      await setDoc(doc(db, 'users', user.uid), {
-        username: trimmedUsername,
-        email: trimmedEmail,
-        createdAt: serverTimestamp()
-      });
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            username: trimmedUsername,
+            email: trimmedEmail,
+            createdAt: serverTimestamp()
+          });
+          console.log('✅ DEBUG: User profile saved successfully');
+          break;
+        } catch (profileError: any) {
+          retryCount++;
+          console.log(`⚠️ DEBUG: Profile save attempt ${retryCount} failed:`, profileError.message);
+          
+          if (retryCount >= maxRetries) {
+            throw profileError;
+          }
+          
+          // Wait before retry and refresh token again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await user.getIdToken(true);
+        }
+      }
 
-      // Step 4: Reserve the username
+      // Step 4: Reserve the username with retry logic
       console.log('🔵 DEBUG: Reserving username...');
-      await setDoc(doc(db, 'usernames', trimmedUsername), {
-        uid: user.uid
-      });
+      retryCount = 0;
+      
+      while (retryCount < maxRetries) {
+        try {
+          await setDoc(doc(db, 'usernames', trimmedUsername), {
+            uid: user.uid,
+            username: trimmedUsername
+          });
+          console.log('✅ DEBUG: Username reserved successfully');
+          break;
+        } catch (usernameError: any) {
+          retryCount++;
+          console.log(`⚠️ DEBUG: Username reservation attempt ${retryCount} failed:`, usernameError.message);
+          
+          if (retryCount >= maxRetries) {
+            throw usernameError;
+          }
+          
+          // Wait before retry and refresh token again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await user.getIdToken(true);
+        }
+      }
 
       console.log('✅ DEBUG: Signup completed successfully');
       return { success: true };
@@ -352,7 +395,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Create new username reservation
       await setDoc(doc(db, 'usernames', trimmedUsername), {
-        uid: userProfile.uid
+        uid: userProfile.uid,
+        username: trimmedUsername
       });
 
       // Update local state
