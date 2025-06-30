@@ -52,10 +52,16 @@ A mood tracking app built with React, TypeScript, and Supabase.
 4. **Set up the database**
    - Go to your Supabase dashboard
    - Navigate to the SQL Editor
-   - Copy and paste the contents of `supabase/migrations/001_initial_schema.sql`
+   - Copy and paste the contents of `supabase/migrations/20250630075947_old_shadow.sql`
    - Run the migration to create tables and policies
 
-5. **Start the development server**
+5. **Deploy the Edge Function (for account deletion)**
+   - Install the Supabase CLI: `npm install -g supabase`
+   - Login to Supabase: `supabase login`
+   - Link your project: `supabase link --project-ref your-project-ref`
+   - Deploy the function: `supabase functions deploy delete-account`
+
+6. **Start the development server**
    ```bash
    npm run dev
    ```
@@ -85,6 +91,35 @@ A mood tracking app built with React, TypeScript, and Supabase.
 - Users can only access their own data
 - Authentication is handled by Supabase Auth
 - All database operations are secured with proper policies
+- Account deletion is handled securely via Edge Functions
+
+## Deployment
+
+### Prerequisites for Deployment
+
+1. **Supabase Setup Complete**: Ensure your database schema is deployed and RLS policies are active
+2. **Edge Function Deployed**: The `delete-account` function must be deployed for secure account deletion
+3. **Environment Variables**: Set up your production environment variables
+
+### Deployment Checklist
+
+- ✅ Sign Up & Login work (with working auth + RLS rules)
+- ✅ Username uniqueness enforced and validated
+- ✅ Mood logging functional (daily limit + moodTypes)
+- ✅ Supabase RLS rules secure each table
+- ✅ No hard errors on page load
+- ✅ Responsive design for mobile
+- ✅ Fun & fast interactions (e.g., toasts, visuals)
+- ✅ Secure account deletion via Edge Functions
+
+### Deploy to Netlify
+
+1. Connect your repository to Netlify
+2. Set build command: `npm run build`
+3. Set publish directory: `dist`
+4. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
 ## Contributing
 

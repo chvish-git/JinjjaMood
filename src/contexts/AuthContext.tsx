@@ -376,42 +376,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Delete all mood logs for this user
-      const { error: moodLogsError } = await supabase
-        .from('mood_logs')
-        .delete()
-        .eq('user_id', userProfile.id);
-
-      if (moodLogsError) {
-        console.error('Error deleting mood logs:', moodLogsError);
-        return { success: false, error: 'Failed to delete mood data. The servers are being stubborn.' };
+      console.log('🔵 DEBUG: Calling delete account edge function...');
+      
+      // Get the current session to get the access token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        return { success: false, error: 'No valid session found' };
       }
 
-      // Delete user profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userProfile.id);
+      // Call the edge function to delete the account
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (profileError) {
-        console.error('Error deleting user profile:', profileError);
-        return { success: false, error: 'Failed to delete profile. The servers are being stubborn.' };
+      if (error) {
+        console.error('Error calling delete account function:', error);
+        return { success: false, error: 'Account deletion failed. The servers are being stubborn.' };
+      }
+
+      if (!data?.success) {
+        console.error('Delete account function returned error:', data?.error);
+        return { success: false, error: data?.error || 'Account deletion failed. The servers are being stubborn.' };
       }
       
       // Clear local state
       setUserProfile(null);
       localStorage.removeItem('jinjjamood_currentUser');
       
-      // Delete Supabase Auth account
-      const { error: authError } = await supabase.auth.admin.deleteUser(currentUser.id);
-      
-      if (authError) {
-        console.error('Error deleting auth account:', authError);
-        // Continue anyway since profile is deleted
-      }
-      
-      // Sign out
-      await supabase.auth.signOut();
+      // The auth state will be updated automatically by the auth listener
+      console.log('✅ DEBUG: Account deleted successfully');
       
       return { success: true };
     } catch (error: any) {
