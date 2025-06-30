@@ -1,7 +1,7 @@
 import { MoodLog } from '../types/mood';
 import { supabase } from '../config/supabase';
 import { format } from 'date-fns';
-import { getMoodOption, getMoodValue } from '../data/moodOptions';
+import { getMoodOption } from '../data/moodOptions';
 
 const DAILY_MOOD_LIMIT = 5;
 
@@ -13,6 +13,8 @@ export const checkDailyMoodLimit = async (userId: string): Promise<{ hasReachedL
   try {
     const today = new Date();
     const todayString = format(today, 'yyyy-MM-dd');
+
+    console.log('🔍 DEBUG: Checking daily mood limit for user:', userId, 'date:', todayString);
 
     // Query mood logs for today
     const { data, error } = await supabase
@@ -27,6 +29,7 @@ export const checkDailyMoodLimit = async (userId: string): Promise<{ hasReachedL
     }
     
     const count = data?.length || 0;
+    console.log('🔍 DEBUG: Found', count, 'mood logs for today');
     
     return { 
       hasReachedLimit: count >= DAILY_MOOD_LIMIT, 
@@ -34,12 +37,9 @@ export const checkDailyMoodLimit = async (userId: string): Promise<{ hasReachedL
     };
   } catch (error: any) {
     console.error('Error checking daily mood limit:', error);
-    
-    // Fallback to localStorage check
-    const localResult = checkDailyMoodLimitLocal(userId);
     return { 
-      hasReachedLimit: localResult, 
-      count: localResult ? DAILY_MOOD_LIMIT : 0 
+      hasReachedLimit: false, 
+      count: 0 
     };
   }
 };
@@ -49,10 +49,16 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
     throw new Error('User ID is required to save mood logs');
   }
 
+  console.log('🔵 DEBUG: Attempting to save mood log:', {
+    mood: moodLog.mood,
+    journalEntry: moodLog.journalEntry,
+    userId: userId
+  });
+
   // Check if user has reached daily limit
   const { hasReachedLimit, count } = await checkDailyMoodLimit(userId);
   if (hasReachedLimit) {
-    throw new Error(`Whoa there — max moods reached today. Come back tomorrow.`);
+    throw new Error(`You've logged ${DAILY_MOOD_LIMIT} moods today! Rest your vibe sensors! 🧠✨`);
   }
 
   try {
@@ -70,6 +76,8 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
       hour: now.getHours(),
     };
 
+    console.log('🔵 DEBUG: Inserting mood log data:', logData);
+
     const { data, error } = await supabase
       .from('mood_logs')
       .insert(logData)
@@ -77,9 +85,11 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
       .single();
 
     if (error) {
-      console.error('Error saving mood log:', error);
+      console.error('❌ DEBUG: Error saving mood log:', error);
       throw error;
     }
+
+    console.log('✅ DEBUG: Mood log saved successfully:', data);
 
     return {
       id: data.id,
@@ -91,19 +101,25 @@ export const saveMoodLog = async (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' |
       hour: data.hour
     };
   } catch (error: any) {
-    console.error('Error saving mood log:', error);
+    console.error('❌ DEBUG: Error saving mood log:', error);
     
-    // Fallback to localStorage
-    return saveMoodLogLocal(moodLog, userId);
+    // Check for specific error types
+    if (error.message?.includes('violates row-level security policy')) {
+      throw new Error('Authentication error. Please try logging in again.');
+    }
+    
+    throw new Error(error.message || 'Failed to save mood log. Please try again.');
   }
 };
 
 export const getMoodLogs = async (userId: string): Promise<MoodLog[]> => {
   if (!userId) {
-    return getMoodLogsLocal(userId);
+    return [];
   }
 
   try {
+    console.log('🔍 DEBUG: Fetching mood logs for user:', userId);
+
     const { data, error } = await supabase
       .from('mood_logs')
       .select('*')
@@ -111,9 +127,11 @@ export const getMoodLogs = async (userId: string): Promise<MoodLog[]> => {
       .order('timestamp', { ascending: false });
     
     if (error) {
-      console.error('Error fetching mood logs:', error);
+      console.error('❌ DEBUG: Error fetching mood logs:', error);
       throw error;
     }
+    
+    console.log('✅ DEBUG: Fetched', data?.length || 0, 'mood logs');
     
     const logs: MoodLog[] = (data || []).map(log => ({
       id: log.id,
@@ -127,17 +145,19 @@ export const getMoodLogs = async (userId: string): Promise<MoodLog[]> => {
     
     return logs;
   } catch (error: any) {
-    console.error('Error fetching mood logs:', error);
-    return getMoodLogsLocal(userId);
+    console.error('❌ DEBUG: Error fetching mood logs:', error);
+    return [];
   }
 };
 
 export const getLatestMoodLog = async (userId: string): Promise<MoodLog | null> => {
   if (!userId) {
-    return getLatestMoodLogLocal(userId);
+    return null;
   }
 
   try {
+    console.log('🔍 DEBUG: Fetching latest mood log for user:', userId);
+
     const { data, error } = await supabase
       .from('mood_logs')
       .select('*')
@@ -146,13 +166,16 @@ export const getLatestMoodLog = async (userId: string): Promise<MoodLog | null> 
       .limit(1);
     
     if (error) {
-      console.error('Error fetching latest mood log:', error);
+      console.error('❌ DEBUG: Error fetching latest mood log:', error);
       throw error;
     }
     
     if (!data || data.length === 0) {
+      console.log('🔍 DEBUG: No mood logs found');
       return null;
     }
+    
+    console.log('✅ DEBUG: Latest mood log fetched:', data[0].mood);
     
     return {
       id: data[0].id,
@@ -164,8 +187,8 @@ export const getLatestMoodLog = async (userId: string): Promise<MoodLog | null> 
       hour: data[0].hour
     };
   } catch (error: any) {
-    console.error('Error fetching latest mood log:', error);
-    return getLatestMoodLogLocal(userId);
+    console.error('❌ DEBUG: Error fetching latest mood log:', error);
+    return null;
   }
 };
 
@@ -182,6 +205,8 @@ export const getMoodLogsByDateRange = async (
     const startDay = format(startDate, 'yyyy-MM-dd');
     const endDay = format(endDate, 'yyyy-MM-dd');
 
+    console.log('🔍 DEBUG: Fetching mood logs for date range:', startDay, 'to', endDay);
+
     const { data, error } = await supabase
       .from('mood_logs')
       .select('*')
@@ -191,9 +216,11 @@ export const getMoodLogsByDateRange = async (
       .order('timestamp', { ascending: false });
     
     if (error) {
-      console.error('Error fetching mood logs by date range:', error);
+      console.error('❌ DEBUG: Error fetching mood logs by date range:', error);
       throw error;
     }
+    
+    console.log('✅ DEBUG: Fetched', data?.length || 0, 'mood logs for date range');
     
     const logs: MoodLog[] = (data || []).map(log => ({
       id: log.id,
@@ -207,68 +234,7 @@ export const getMoodLogsByDateRange = async (
     
     return logs;
   } catch (error: any) {
-    console.error('Error fetching mood logs by date range:', error);
+    console.error('❌ DEBUG: Error fetching mood logs by date range:', error);
     return [];
   }
-};
-
-// Fallback localStorage functions
-const STORAGE_KEY = 'jinjjamood_logs';
-
-const checkDailyMoodLimitLocal = (userId: string): boolean => {
-  const logs = getMoodLogsLocal(userId);
-  const today = format(new Date(), 'yyyy-MM-dd');
-  
-  const todayLogs = logs.filter(log => log.day === today);
-  return todayLogs.length >= DAILY_MOOD_LIMIT;
-};
-
-const saveMoodLogLocal = (moodLog: Omit<MoodLog, 'id' | 'day' | 'hour' | 'moodType'>, userId: string): MoodLog => {
-  const hasReachedLimit = checkDailyMoodLimitLocal(userId);
-  if (hasReachedLimit) {
-    throw new Error(`Whoa there — max moods reached today. Come back tomorrow.`);
-  }
-
-  const logs = getMoodLogsLocal(userId);
-  const now = new Date();
-  const moodOption = getMoodOption(moodLog.mood as any);
-  
-  const newLog: MoodLog = {
-    ...moodLog,
-    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-    timestamp: now,
-    day: format(now, 'yyyy-MM-dd'),
-    hour: now.getHours(),
-    moodType: moodOption?.type || 'neutral'
-  };
-  
-  logs.push(newLog);
-  localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(logs));
-  return newLog;
-};
-
-const getMoodLogsLocal = (userId: string): MoodLog[] => {
-  try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
-    if (!stored) return [];
-    
-    const logs = JSON.parse(stored);
-    return logs.map((log: any) => ({
-      ...log,
-      timestamp: new Date(log.timestamp),
-      moodType: log.moodType || 'neutral',
-      day: log.day || format(new Date(log.timestamp), 'yyyy-MM-dd'),
-      hour: log.hour || new Date(log.timestamp).getHours()
-    }));
-  } catch (error) {
-    console.error('Error loading mood logs from localStorage:', error);
-    return [];
-  }
-};
-
-const getLatestMoodLogLocal = (userId: string): MoodLog | null => {
-  const logs = getMoodLogsLocal(userId);
-  if (logs.length === 0) return null;
-  
-  return logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 };

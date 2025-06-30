@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
-import { checkEmailExists, checkUsernameExists, checkUsernameAvailableForUpdate } from '../utils/userSearch';
 import toast from 'react-hot-toast';
 
 interface UserProfile {
@@ -114,17 +113,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.rpc('check_email_exists', { 
+        p_email: email.toLowerCase().trim() 
+      });
+      
+      if (error) {
+        console.error('Error checking email:', error);
+        return false;
+      }
+      
+      return data as boolean;
+    } catch (error) {
+      console.error('Error checking email:', error);
+      return false;
+    }
+  };
+
+  const checkUsernameExists = async (username: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.rpc('check_username_exists', { 
+        p_username: username.toLowerCase().trim() 
+      });
+      
+      if (error) {
+        console.error('Error checking username:', error);
+        return false;
+      }
+      
+      return data as boolean;
+    } catch (error) {
+      console.error('Error checking username:', error);
+      return false;
+    }
+  };
+
   const signup = async (email: string, password: string, username: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
-    // Validation with witty messages
-    if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
-    }
-
-    if (!password || password.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
-    }
-
-    if (!username || username.trim().length === 0) {
+    // Validation
+    if (!email || !password || !username) {
       return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
@@ -132,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedPassword = password.trim();
     const trimmedUsername = username.trim().toLowerCase();
     
-    // Basic username validation
+    // Basic validation
     if (trimmedUsername.length < 2) {
       return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
     }
@@ -145,20 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      return { success: false, error: 'That email looks sus. Double-check it?' };
-    }
-
-    // Basic password validation
     if (trimmedPassword.length < 6) {
       return { success: false, error: 'Password needs at least 6 characters. Make it stronger!' };
-    }
-
-    // Check network connectivity
-    if (!navigator.onLine) {
-      return { success: false, error: 'You\'re offline. Connect to the internet to join the vibe!' };
     }
 
     try {
@@ -166,25 +181,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       
       console.log('🔵 DEBUG: Starting signup process for username:', trimmedUsername);
-      console.log('🔵 DEBUG: Signup data:', { email: trimmedEmail, username: trimmedUsername, rememberMe });
 
-      // Step 1: Check if email already exists
-      console.log('🔍 DEBUG: Checking if email exists...');
-      const emailCheck = await checkEmailExists(trimmedEmail);
-      if (emailCheck.exists) {
-        console.log('❌ DEBUG: Email already exists:', trimmedEmail);
-        return { success: false, error: emailCheck.message || 'You\'ve been here before. Wanna log in instead?' };
+      // Check if email already exists
+      const emailExists = await checkEmailExists(trimmedEmail);
+      if (emailExists) {
+        return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
       }
 
-      // Step 2: Check if username is already taken
-      console.log('🔍 DEBUG: Checking if username is available...');
-      const usernameCheck = await checkUsernameExists(trimmedUsername);
-      if (usernameCheck.exists) {
-        console.log('❌ DEBUG: Username already taken:', trimmedUsername);
-        return { success: false, error: usernameCheck.message || 'That name\'s already vibin\' with someone else. Try another.' };
+      // Check if username is already taken
+      const usernameExists = await checkUsernameExists(trimmedUsername);
+      if (usernameExists) {
+        return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
       }
 
-      // Step 3: Create Supabase account
+      // Create Supabase account
       console.log('🔵 DEBUG: Creating Supabase account...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: trimmedEmail,
@@ -192,15 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (authError) {
-        // Only log error if it's not the expected "already registered" scenario
-        if (!authError.message.includes('already registered')) {
-          console.error('❌ DEBUG: Supabase auth error:', authError);
-          console.error('❌ DEBUG: Auth error details:', {
-            message: authError.message,
-            status: authError.status,
-            name: authError.name
-          });
-        }
+        console.error('❌ DEBUG: Supabase auth error:', authError);
         
         if (authError.message.includes('already registered')) {
           return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
@@ -215,21 +217,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('✅ DEBUG: Supabase account created successfully');
-      console.log('🔵 DEBUG: Auth user data:', {
-        id: authData.user.id,
-        email: authData.user.email,
-        email_confirmed_at: authData.user.email_confirmed_at,
-        created_at: authData.user.created_at
-      });
 
-      // Step 4: Save user profile to public.users table
+      // Save user profile to users table
       console.log('🔵 DEBUG: Saving user profile to database...');
-      console.log('🔵 DEBUG: Profile data to insert:', {
-        id: authData.user.id,
-        username: trimmedUsername,
-        email: trimmedEmail,
-      });
-
       const { data: profileData, error: profileError } = await supabase
         .from('users')
         .insert({
@@ -242,49 +232,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error('❌ DEBUG: Error saving user profile:', profileError);
-        console.error('❌ DEBUG: Profile error details:', {
-          message: profileError.message,
-          details: profileError.details,
-          hint: profileError.hint,
-          code: profileError.code
-        });
-        
-        // Try to get more information about the error
-        if (profileError.code === 'PGRST116') {
-          console.error('❌ DEBUG: RLS policy violation - user may not have permission to insert');
-        } else if (profileError.code === '23505') {
-          console.error('❌ DEBUG: Unique constraint violation - duplicate key');
-        } else if (profileError.code === '42501') {
-          console.error('❌ DEBUG: Insufficient privilege - RLS or permission issue');
-        }
-        
-        // Check if the user was created in auth but profile failed
-        console.log('🔍 DEBUG: Checking if auth user exists after profile error...');
-        const { data: { user: checkUser } } = await supabase.auth.getUser();
-        console.log('🔍 DEBUG: Auth user after profile error:', checkUser?.id || 'null');
-        
         return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
       }
 
       console.log('✅ DEBUG: User profile saved successfully');
-      console.log('🔵 DEBUG: Profile data returned:', profileData);
 
-      // Step 5: Configure session persistence based on rememberMe
+      // Configure session persistence
       if (authData.session) {
         console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
         
-        // Configure session storage type
-        await supabase.auth.setSession({
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token
-        });
-
-        // Store remember me preference
         if (rememberMe) {
           localStorage.setItem('jinjjamood_rememberMe', 'true');
         } else {
           localStorage.setItem('jinjjamood_rememberMe', 'false');
-          // For non-persistent sessions, we'll handle this in the logout function
         }
       }
 
@@ -293,7 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
     } catch (err: any) {
       console.error('❌ DEBUG: Signup error:', err);
-      console.error('❌ DEBUG: Error stack:', err.stack);
       
       let errorMessage = 'Something went sideways. Try again?';
       
@@ -311,22 +270,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
-    // Validation with witty messages
-    if (!email || email.trim().length === 0) {
-      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
-    }
-
-    if (!password || password.trim().length === 0) {
+    // Validation
+    if (!email || !password) {
       return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
     }
 
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
-
-    // Check network connectivity
-    if (!navigator.onLine) {
-      return { success: false, error: 'Mood radar\'s down. Try again in a sec?' };
-    }
 
     try {
       setError(null);
@@ -335,7 +285,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
 
       // Attempt Supabase authentication
-      console.log('🔵 DEBUG: Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: trimmedPassword,
@@ -363,16 +312,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Login failed. The servers are being moody.' };
       }
 
-      // Configure session persistence based on rememberMe
+      // Configure session persistence
       if (data.session) {
         console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
         
-        // Store remember me preference
         if (rememberMe) {
           localStorage.setItem('jinjjamood_rememberMe', 'true');
         } else {
           localStorage.setItem('jinjjamood_rememberMe', 'false');
-          // For non-persistent sessions, we'll handle this in the logout function
         }
       }
 
@@ -405,13 +352,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedUsername = newUsername.trim().toLowerCase();
     
     try {
-      // Check if new username is available for this user
-      console.log('🔍 DEBUG: Checking username availability for update...');
-      const availabilityCheck = await checkUsernameAvailableForUpdate(trimmedUsername, userProfile.id);
-      
-      if (availabilityCheck.exists) {
-        console.log('❌ DEBUG: Username not available for update:', trimmedUsername);
-        return { success: false, error: availabilityCheck.message || 'Someone\'s already vibing with that name. Pick a new one?' };
+      // Check if new username is available
+      const usernameExists = await checkUsernameExists(trimmedUsername);
+      if (usernameExists) {
+        return { success: false, error: 'Someone\'s already vibing with that name. Pick a new one?' };
       }
 
       // Update user profile
@@ -481,7 +425,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('jinjjamood_currentUser');
       localStorage.removeItem('jinjjamood_rememberMe');
       
-      // The auth state will be updated automatically by the auth listener
       console.log('✅ DEBUG: Account deleted successfully');
       
       return { success: true };
@@ -495,10 +438,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🟡 DEBUG: AuthContext logout() function started');
     
     try {
-      // Check if user wanted to be remembered
-      const rememberMe = localStorage.getItem('jinjjamood_rememberMe') === 'true';
-      console.log('🟡 DEBUG: Remember me preference:', rememberMe);
-      
       // Clear localStorage first
       localStorage.removeItem('jinjjamood_currentUser');
       localStorage.removeItem('jinjjamood_rememberMe');
@@ -516,13 +455,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('✅ DEBUG: Supabase signOut successful');
       
-      // Clear user profile state (auth listener will handle currentUser)
+      // Clear user profile state
       setUserProfile(null);
-      console.log('🟡 DEBUG: setUserProfile(null) called');
-      
-      // Clear any errors
       setError(null);
-      console.log('🟡 DEBUG: setError(null) called');
       
       // Show friendly logout toast
       toast.success('See you soon, vibe rider.', {
