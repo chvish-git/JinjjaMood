@@ -30,10 +30,7 @@ export const MoodCheckPage: React.FC = () => {
     setIsVisible(true);
     
     const checkDailyLimit = async () => {
-      // Wait for authentication to complete before checking daily limit
-      if (authLoading) {
-        return;
-      }
+      if (authLoading) return;
 
       if (userProfile?.id) {
         try {
@@ -46,10 +43,6 @@ export const MoodCheckPage: React.FC = () => {
           }
         } catch (error) {
           console.error('Error checking daily limit:', error);
-          // Only set error message for non-permission errors
-          if (error instanceof Error && !error.message.includes('permission')) {
-            setErrorMessage('Unable to check daily limit. Please try again.');
-          }
         }
       }
       setCheckingLimit(false);
@@ -61,43 +54,19 @@ export const MoodCheckPage: React.FC = () => {
   const handleSubmit = async () => {
     if (!selectedMood) {
       setErrorMessage('Please select a mood.');
-      toast.error('Please select a mood first! 💭', {
-        style: {
-          background: isDark ? '#1f2937' : '#ffffff',
-          color: isDark ? '#ffffff' : '#1f2937',
-          border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
-          borderRadius: '12px',
-          fontWeight: '600',
-        },
-      });
+      toast.error('Please select a mood first! 💭');
       return;
     }
 
     if (!userProfile?.id) {
       setErrorMessage('Authentication error. Please try logging in again.');
-      toast.error('Authentication error. Please try again.', {
-        style: {
-          background: isDark ? '#1f2937' : '#ffffff',
-          color: isDark ? '#ffffff' : '#1f2937',
-          border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
-          borderRadius: '12px',
-          fontWeight: '600',
-        },
-      });
+      toast.error('Authentication error. Please try again.');
       return;
     }
 
     if (hasReachedLimit) {
       setErrorMessage(`You've logged ${DAILY_MOOD_LIMIT} moods today! Rest your vibe sensors! 🧠✨`);
-      toast.error('Daily mood limit reached! 🧠✨', {
-        style: {
-          background: isDark ? '#1f2937' : '#ffffff',
-          color: isDark ? '#ffffff' : '#1f2937',
-          border: `2px solid ${isDark ? '#f59e0b' : '#d97706'}`,
-          borderRadius: '12px',
-          fontWeight: '600',
-        },
-      });
+      toast.error('Daily mood limit reached! 🧠✨');
       return;
     }
 
@@ -105,19 +74,11 @@ export const MoodCheckPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      console.log('🔵 DEBUG: Attempting to save mood log:', {
-        mood: selectedMood,
-        journalEntry: journalEntry.trim(),
-        uid: userProfile.id
-      });
-
       const savedLog = await saveMoodLog({
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
         timestamp: new Date()
       }, userProfile.id);
-
-      console.log('✅ DEBUG: Mood log saved successfully:', savedLog);
 
       // Check if this is the 5th mood log of the day
       const newCount = dailyCount + 1;
@@ -155,7 +116,6 @@ export const MoodCheckPage: React.FC = () => {
           colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5']
         });
 
-        // Second wave of confetti
         setTimeout(() => {
           confetti({
             particleCount: 100,
@@ -165,7 +125,7 @@ export const MoodCheckPage: React.FC = () => {
           });
         }, 500);
       } else {
-        // Show mood-specific toast with better contrast
+        // Show mood-specific toast
         toast.success(feedback.message, {
           duration: feedback.duration,
           style: {
@@ -178,7 +138,7 @@ export const MoodCheckPage: React.FC = () => {
           icon: feedback.emoji,
         });
 
-        // Only use confetti for positive moods (non-celebration)
+        // Only use confetti for positive moods
         if (feedback.type === 'positive' || feedback.type === 'bonus') {
           confetti({
             particleCount: 80,
@@ -194,33 +154,16 @@ export const MoodCheckPage: React.FC = () => {
         navigate('/results');
       }, isHighFive ? 2000 : 1500);
     } catch (error: any) {
-      console.error('❌ DEBUG: Error saving mood log:', error);
+      console.error('Error saving mood log:', error);
       const errorMsg = error.message || 'Failed to save mood log. Please try again.';
       setErrorMessage(errorMsg);
       
       if (errorMsg.includes('Rest your vibe sensors')) {
         setHasReachedLimit(true);
         setDailyCount(DAILY_MOOD_LIMIT);
-        toast.error('Daily mood limit reached! 🧠✨', {
-          duration: 4000,
-          style: {
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#ffffff' : '#1f2937',
-            border: `2px solid ${isDark ? '#f59e0b' : '#d97706'}`,
-            borderRadius: '12px',
-            fontWeight: '600',
-          },
-        });
+        toast.error('Daily mood limit reached! 🧠✨');
       } else {
-        toast.error(errorMsg, {
-          style: {
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#ffffff' : '#1f2937',
-            border: `2px solid ${isDark ? '#ef4444' : '#dc2626'}`,
-            borderRadius: '12px',
-            fontWeight: '600',
-          },
-        });
+        toast.error(errorMsg);
       }
       setIsSubmitting(false);
     }
@@ -251,7 +194,7 @@ export const MoodCheckPage: React.FC = () => {
         ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
         : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
     }`}>
-      {/* Enhanced animated background elements */}
+      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className={`absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float ${
           isDark ? 'bg-purple-500' : 'bg-pink-300'
@@ -259,14 +202,11 @@ export const MoodCheckPage: React.FC = () => {
         <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-float delay-1000 ${
           isDark ? 'bg-blue-500' : 'bg-blue-300'
         }`}></div>
-        <div className={`absolute top-1/2 left-1/4 w-64 h-64 rounded-full opacity-10 blur-3xl animate-gentle-wave ${
-          isDark ? 'bg-pink-500' : 'bg-purple-300'
-        }`}></div>
       </div>
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 py-20">
-        {/* Enhanced Header */}
+        {/* Header */}
         <div className={`text-center mb-12 transform transition-all duration-1000 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
@@ -285,7 +225,7 @@ export const MoodCheckPage: React.FC = () => {
             }
           </p>
 
-          {/* Enhanced daily counter with progress bar */}
+          {/* Daily counter with progress bar */}
           {!hasReachedLimit && (
             <div className={`flex items-center justify-center gap-4 mt-6 glass rounded-full px-6 py-3 transition-all duration-300 hover:scale-105 max-w-md mx-auto`}>
               <Clock size={18} className="text-purple-400" />
@@ -303,7 +243,7 @@ export const MoodCheckPage: React.FC = () => {
           )}
         </div>
 
-        {/* Enhanced Daily Limit Message */}
+        {/* Daily Limit Message */}
         {hasReachedLimit && (
           <div className={`mb-12 max-w-md mx-auto text-center transform transition-all duration-1000 delay-200 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -340,7 +280,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Enhanced Error Message */}
+        {/* Error Message */}
         {errorMessage && !hasReachedLimit && (
           <div className={`mb-8 max-w-md mx-auto transform transition-all duration-300 ${
             errorMessage ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
@@ -356,7 +296,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Enhanced Mood Selector */}
+        {/* Mood Selector */}
         {!hasReachedLimit && (
           <div className={`mb-12 w-full transform transition-all duration-1000 delay-300 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -371,7 +311,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Enhanced Journal Input */}
+        {/* Journal Input */}
         {!hasReachedLimit && (
           <div className={`mb-12 w-full transform transition-all duration-1000 delay-500 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -383,7 +323,7 @@ export const MoodCheckPage: React.FC = () => {
           </div>
         )}
 
-        {/* Enhanced Submit Button */}
+        {/* Submit Button */}
         {!hasReachedLimit && (
           <div className={`transform transition-all duration-1000 delay-700 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
@@ -411,31 +351,13 @@ export const MoodCheckPage: React.FC = () => {
                 )}
               </span>
               
-              {/* Enhanced glow effect */}
+              {/* Glow effect */}
               {selectedMood && !hasReachedLimit && (
                 <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-purple-600/50 to-pink-600/50 blur-xl"></div>
               )}
             </button>
           </div>
         )}
-      </div>
-
-      {/* Enhanced floating particles effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className={`absolute w-3 h-3 rounded-full opacity-40 ${
-              isDark ? 'bg-white' : 'bg-purple-400'
-            }`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${3 + Math.random() * 2}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 3}s`
-            }}
-          ></div>
-        ))}
       </div>
     </div>
   );

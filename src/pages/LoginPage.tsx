@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff, Shield, HelpCircle } from 'lucide-react';
+import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
@@ -17,19 +17,13 @@ export const LoginPage: React.FC = () => {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [usernameInput, setUsernameInput] = useState('');
-  const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   
   // UI state
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showLoginHelp, setShowLoginHelp] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{
-    email?: string;
-    password?: string;
-    username?: string;
-  }>({});
 
   // Get the intended destination from location state
   const from = location.state?.from?.pathname || '/mood';
@@ -43,7 +37,7 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
-  // Real-time validation with witty messages
+  // Real-time validation
   const validateEmail = (email: string) => {
     if (!email.trim()) return 'Don\'t ghost the form. Fill it in, bestie.';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +64,6 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setSuccessMessage('');
     setIsProcessing(true);
-    setShowLoginHelp(false);
     
     // Validate inputs
     const emailError = validateEmail(emailInput);
@@ -78,11 +71,7 @@ export const LoginPage: React.FC = () => {
     const usernameError = isSignupMode ? validateUsername(usernameInput) : '';
     
     if (emailError || passwordError || usernameError) {
-      setValidationErrors({
-        email: emailError,
-        password: passwordError,
-        username: usernameError
-      });
+      setErrorMessage(emailError || passwordError || usernameError);
       setIsProcessing(false);
       return;
     }
@@ -91,12 +80,11 @@ export const LoginPage: React.FC = () => {
       let result;
       
       if (isSignupMode) {
-        console.log('🔵 DEBUG: Attempting signup...');
         result = await signup(emailInput, passwordInput, usernameInput, rememberMe);
         
         if (result.success) {
-          setSuccessMessage(`Mood locked in. Welcome, ${usernameInput}!`);
-          toast.success(`Mood locked in. Welcome, ${usernameInput}!`, {
+          setSuccessMessage(`Welcome to the vibe zone, ${usernameInput}! ✨`);
+          toast.success(`Welcome, ${usernameInput}! ✨`, {
             duration: 4000,
             style: {
               background: '#10B981',
@@ -105,35 +93,26 @@ export const LoginPage: React.FC = () => {
             },
           });
           
-          // Navigate to intended destination
           setTimeout(() => {
             navigate(from, { replace: true });
           }, 1500);
         } else if (result.error) {
           setErrorMessage(result.error);
           
-          // Show specific toasts for different errors
           if (result.error.includes('You\'ve been here before')) {
-            toast.error('This email already joined the vibe. Try logging in.', {
-              style: { fontWeight: '600' }
-            });
+            toast.error('Already vibin\'? Try logging in 😌');
           } else if (result.error.includes('already vibin\' with someone else')) {
-            toast.error('That name\'s already vibin\' with someone else. Try another.', {
-              style: { fontWeight: '600' }
-            });
+            toast.error('That name\'s taken. Try another! 💫');
           } else {
-            toast.error(result.error, {
-              style: { fontWeight: '600' }
-            });
+            toast.error(result.error);
           }
         }
       } else {
-        console.log('🔵 DEBUG: Attempting login...');
         result = await login(emailInput, passwordInput, rememberMe);
         
         if (result.success) {
-          setSuccessMessage('Back in the zone.');
-          toast.success('Back in the zone.', {
+          setSuccessMessage('Welcome back! 🎉');
+          toast.success('Welcome back! 🎉', {
             duration: 3000,
             style: {
               background: '#8B5CF6',
@@ -142,28 +121,18 @@ export const LoginPage: React.FC = () => {
             },
           });
           
-          // Navigate to intended destination
           setTimeout(() => {
             navigate(from, { replace: true });
           }, 1000);
         } else if (result.error) {
           setErrorMessage(result.error);
           
-          // Show login help for credential errors
-          if (result.error.includes('That ain\'t the one') || result.error.includes('Invalid login credentials')) {
-            setShowLoginHelp(true);
-            toast.error('That ain\'t the one. Try again?', {
-              style: { fontWeight: '600' }
-            });
+          if (result.error.includes('That ain\'t the one')) {
+            toast.error('Invalid login. Try again? 🤔');
           } else if (result.error.includes('No account with that email')) {
-            setShowLoginHelp(true);
-            toast.error('No account with that email. Feeling new? Try signing up.', {
-              style: { fontWeight: '600' }
-            });
+            toast.error('New here? Try signing up ✨');
           } else {
-            toast.error(result.error, {
-              style: { fontWeight: '600' }
-            });
+            toast.error(result.error);
           }
         }
       }
@@ -171,75 +140,15 @@ export const LoginPage: React.FC = () => {
       console.error('Auth error:', err);
       const errorMsg = err.message || 'Something went sideways. Try again?';
       setErrorMessage(errorMsg);
-      toast.error(errorMsg, {
-        style: { fontWeight: '600' }
-      });
+      toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmailInput(e.target.value.toLowerCase());
-    setErrorMessage('');
-    setSuccessMessage('');
-    setShowLoginHelp(false);
-    
-    // Real-time validation
-    const error = validateEmail(e.target.value);
-    setValidationErrors(prev => ({ ...prev, email: error }));
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordInput(e.target.value);
-    setErrorMessage('');
-    setSuccessMessage('');
-    setShowLoginHelp(false);
-    
-    // Real-time validation
-    const error = validatePassword(e.target.value);
-    setValidationErrors(prev => ({ ...prev, password: error }));
-  };
-
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-    setUsernameInput(value);
-    setErrorMessage('');
-    setSuccessMessage('');
-    setShowLoginHelp(false);
-    
-    // Real-time validation
-    const error = validateUsername(value);
-    setValidationErrors(prev => ({ ...prev, username: error }));
-  };
-
   const isButtonDisabled = isProcessing || loading || 
     emailInput.length === 0 || passwordInput.length === 0 || 
-    (isSignupMode && usernameInput.length < 2) ||
-    !!validationErrors.email || !!validationErrors.password || 
-    (isSignupMode && !!validationErrors.username);
-
-  // If user is already authenticated, show a different message
-  if (isAuthenticated) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-          : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
-      }`}>
-        <div className="text-center">
-          <div className="text-6xl mb-4">✨</div>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            You're already in the vibe zone!
-          </h2>
-          <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Taking you to your mood dashboard...
-          </p>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
+    (isSignupMode && usernameInput.length < 2);
 
   return (
     <div className={`min-h-screen ${
@@ -255,19 +164,15 @@ export const LoginPage: React.FC = () => {
         <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse delay-1000 ${
           isDark ? 'bg-blue-500' : 'bg-blue-300'
         }`}></div>
-        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-10 blur-3xl animate-pulse delay-2000 ${
-          isDark ? 'bg-pink-500' : 'bg-purple-300'
-        }`}></div>
       </div>
 
-      {/* Main content with proper centering and safe padding */}
+      {/* Main content */}
       <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-md mx-auto space-y-8">
-          {/* Perfect Header with proper spacing and centering */}
+          {/* Header */}
           <div className={`text-center transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            {/* Properly sized and centered JinjjaMood title with responsive clamp */}
             <h1 
               className="font-black bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight tracking-tight"
               style={{
@@ -278,48 +183,17 @@ export const LoginPage: React.FC = () => {
               JinjjaMood
             </h1>
             
-            <div className="space-y-3">
-              <p className={`text-base md:text-lg font-light tracking-wider ${
-                isDark ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                jinjja → real/really
-              </p>
-              
-              <p className={`text-lg md:text-xl font-medium ${
-                isDark ? 'text-white' : 'text-gray-800'
-              }`}>
-                {isSignupMode ? 'Join the vibe tribe' : 'Welcome back, moodster 👋'}
-              </p>
-            </div>
-          </div>
-
-          {/* Cute mood-related image placeholder */}
-          <div className={`text-center transform transition-all duration-1000 delay-200 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-          }`}>
-            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center shadow-lg ${
-              isDark ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-pink-200 to-purple-200'
+            <p className={`text-lg font-medium ${
+              isDark ? 'text-white' : 'text-gray-800'
             }`}>
-              <span className="text-2xl">{isSignupMode ? '🌟✨' : '🌸✨'}</span>
-            </div>
+              {isSignupMode ? 'Join the vibe tribe ✨' : 'Welcome back, moodster 👋'}
+            </p>
           </div>
 
-          {/* Auth Card with proper spacing */}
+          {/* Auth Card */}
           <div className={`glass-strong rounded-3xl p-6 shadow-2xl transform transition-all duration-1000 delay-400 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            <div className="text-center mb-6">
-              <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                {isSignupMode ? 'Create Your Account' : 'Welcome Back'}
-              </h2>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                {isSignupMode 
-                  ? 'Join JinjjaMood and start tracking your real feelings'
-                  : 'Enter your email and password to get back in the zone'
-                }
-              </p>
-            </div>
-
             {/* Mode Toggle */}
             <div className="flex justify-center mb-6">
               <div className={`flex rounded-2xl p-1 border-2 ${
@@ -333,8 +207,6 @@ export const LoginPage: React.FC = () => {
                     setIsSignupMode(false);
                     setErrorMessage('');
                     setSuccessMessage('');
-                    setShowLoginHelp(false);
-                    setValidationErrors({});
                   }}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                     !isSignupMode
@@ -346,7 +218,7 @@ export const LoginPage: React.FC = () => {
                         : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                   }`}
                 >
-                  Login
+                  Sign In
                 </button>
                 <button
                   type="button"
@@ -354,8 +226,6 @@ export const LoginPage: React.FC = () => {
                     setIsSignupMode(true);
                     setErrorMessage('');
                     setSuccessMessage('');
-                    setShowLoginHelp(false);
-                    setValidationErrors({});
                   }}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                     isSignupMode
@@ -379,10 +249,7 @@ export const LoginPage: React.FC = () => {
               }`}>
                 <div className="flex items-start gap-2">
                   <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium mb-1">Success!</p>
-                    <p>{successMessage}</p>
-                  </div>
+                  <p className="text-sm font-medium">{successMessage}</p>
                 </div>
               </div>
             )}
@@ -394,30 +261,7 @@ export const LoginPage: React.FC = () => {
               }`}>
                 <div className="flex items-start gap-2">
                   <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium mb-1">Oops!</p>
-                    <p>{errorMessage}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Login Help Message */}
-            {showLoginHelp && !isSignupMode && (
-              <div className={`mb-4 p-4 rounded-xl border ${
-                isDark ? 'bg-blue-500/20 border-blue-500/30 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800'
-              }`}>
-                <div className="flex items-start gap-2">
-                  <HelpCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium mb-2">Need help logging in?</p>
-                    <ul className="space-y-1 text-xs">
-                      <li>• Double-check your email address for typos</li>
-                      <li>• Make sure you're using the correct password</li>
-                      <li>• If you haven't signed up yet, try the "Sign Up" tab</li>
-                      <li>• Passwords are case-sensitive</li>
-                    </ul>
-                  </div>
+                  <p className="text-sm font-medium">{errorMessage}</p>
                 </div>
               </div>
             )}
@@ -441,22 +285,17 @@ export const LoginPage: React.FC = () => {
                     type="email"
                     id="email"
                     value={emailInput}
-                    onChange={handleEmailChange}
+                    onChange={(e) => setEmailInput(e.target.value.toLowerCase())}
                     placeholder="you@email.com"
                     className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
-                      validationErrors.email 
-                        ? 'border-red-500 focus:ring-red-500' 
-                        : isDark 
-                          ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
-                          : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                      isDark 
+                        ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                        : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
                     }`}
                     required
                     disabled={isProcessing}
                   />
                 </div>
-                {validationErrors.email && (
-                  <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>
-                )}
               </div>
 
               {/* Username Field (Signup only) */}
@@ -477,23 +316,18 @@ export const LoginPage: React.FC = () => {
                       type="text"
                       id="username"
                       value={usernameInput}
-                      onChange={handleUsernameChange}
+                      onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                       placeholder="make it iconic"
                       className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
-                        validationErrors.username 
-                          ? 'border-red-500 focus:ring-red-500' 
-                          : isDark 
-                            ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
-                            : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                        isDark 
+                          ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                          : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
                       }`}
                       maxLength={20}
                       required
                       disabled={isProcessing}
                     />
                   </div>
-                  {validationErrors.username && (
-                    <p className="mt-1 text-xs text-red-500">{validationErrors.username}</p>
-                  )}
                   <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                     2-20 characters, letters, numbers, and underscores only
                   </p>
@@ -517,14 +351,12 @@ export const LoginPage: React.FC = () => {
                     type={showPassword ? "text" : "password"}
                     id="password"
                     value={passwordInput}
-                    onChange={handlePasswordChange}
-                    placeholder={isSignupMode ? "something strong, like your mood swings" : "shhh, secret"}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder={isSignupMode ? "make it strong" : "your secret"}
                     className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
-                      validationErrors.password 
-                        ? 'border-red-500 focus:ring-red-500' 
-                        : isDark 
-                          ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
-                          : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                      isDark 
+                        ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                        : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
                     }`}
                     required
                     disabled={isProcessing}
@@ -542,9 +374,6 @@ export const LoginPage: React.FC = () => {
                     )}
                   </button>
                 </div>
-                {validationErrors.password && (
-                  <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
-                )}
                 {isSignupMode && (
                   <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                     Minimum 6 characters
@@ -574,11 +403,6 @@ export const LoginPage: React.FC = () => {
                     Remember me
                   </label>
                 </div>
-                
-                {/* Session info */}
-                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                  {rememberMe ? 'Stay signed in' : 'Sign out when browser closes'}
-                </div>
               </div>
 
               <button
@@ -590,13 +414,6 @@ export const LoginPage: React.FC = () => {
                     : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
                 }`}
               >
-                {/* Button glow effect */}
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl ${
-                  isDark 
-                    ? 'bg-gradient-to-r from-pink-500 to-purple-600' 
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600'
-                }`}></div>
-                
                 <span className="relative flex items-center justify-center gap-3 text-white font-bold">
                   {isProcessing ? (
                     <>
@@ -605,77 +422,15 @@ export const LoginPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <span className="text-white">{isSignupMode ? 'Let\'s vibe' : 'Enter the mood zone'}</span>
+                      <span className="text-white">{isSignupMode ? 'Join the Vibe' : 'Enter the Zone'}</span>
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300 text-white" />
                     </>
                   )}
                 </span>
               </button>
             </form>
-
-            {/* Features */}
-            <div className="mt-6 space-y-3">
-              <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  isDark ? 'bg-purple-500/20' : 'bg-purple-100'
-                }`}>
-                  <Sparkles size={12} className="text-purple-600" />
-                </div>
-                <span>Secure email & password authentication</span>
-              </div>
-              <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  isDark ? 'bg-pink-500/20' : 'bg-pink-100'
-                }`}>
-                  <Sparkles size={12} className="text-pink-600" />
-                </div>
-                <span>Daily vibe quotes matched to your mood</span>
-              </div>
-              <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  isDark ? 'bg-blue-500/20' : 'bg-blue-100'
-                }`}>
-                  <User size={12} className="text-blue-600" />
-                </div>
-                <span>Cross-device sync with your unique username</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Security Notice - Now Gen Z and meme-y */}
-          <div className={`text-center max-w-md mx-auto transform transition-all duration-1000 delay-600 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-          }`}>
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Shield size={16} className="text-green-600" />
-              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Your Data is Safe, Bestie
-              </span>
-            </div>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Your vibes are locked down tighter than your DMs. We encrypt everything and never sell your data. 
-              No cap. 🔒✨
-            </p>
           </div>
         </div>
-      </div>
-
-      {/* Floating particles effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className={`absolute w-2 h-2 rounded-full opacity-30 animate-bounce ${
-              isDark ? 'bg-white' : 'bg-purple-400'
-            }`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${3 + Math.random() * 2}s`
-            }}
-          ></div>
-        ))}
       </div>
     </div>
   );
