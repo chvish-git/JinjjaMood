@@ -28,16 +28,16 @@ export const ResultsPage: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!userProfile?.uid) {
+      if (!userProfile?.id) {
         setLoading(false);
         return;
       }
 
       try {
         const [latest, logs, dailyLimit] = await Promise.all([
-          getLatestMoodLog(userProfile.uid),
-          getMoodLogs(userProfile.uid),
-          checkDailyMoodLimit(userProfile.uid)
+          getLatestMoodLog(userProfile.id),
+          getMoodLogs(userProfile.id),
+          checkDailyMoodLimit(userProfile.id)
         ]);
         
         setLatestLog(latest);
@@ -65,7 +65,7 @@ export const ResultsPage: React.FC = () => {
     };
 
     loadData();
-  }, [userProfile?.uid]);
+  }, [userProfile?.id]);
 
   const getMoodEmoji = (mood: string) => {
     const moodOption = getMoodOption(mood as any);

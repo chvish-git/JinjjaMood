@@ -35,9 +35,9 @@ export const MoodCheckPage: React.FC = () => {
         return;
       }
 
-      if (userProfile?.uid) {
+      if (userProfile?.id) {
         try {
-          const { hasReachedLimit: limitReached, count } = await checkDailyMoodLimit(userProfile.uid);
+          const { hasReachedLimit: limitReached, count } = await checkDailyMoodLimit(userProfile.id);
           setHasReachedLimit(limitReached);
           setDailyCount(count);
           
@@ -56,7 +56,7 @@ export const MoodCheckPage: React.FC = () => {
     };
 
     checkDailyLimit();
-  }, [userProfile?.uid, authLoading]);
+  }, [userProfile?.id, authLoading]);
 
   const handleSubmit = async () => {
     if (!selectedMood) {
@@ -73,7 +73,7 @@ export const MoodCheckPage: React.FC = () => {
       return;
     }
 
-    if (!userProfile?.uid) {
+    if (!userProfile?.id) {
       setErrorMessage('Authentication error. Please try logging in again.');
       toast.error('Authentication error. Please try again.', {
         style: {
@@ -108,14 +108,14 @@ export const MoodCheckPage: React.FC = () => {
       console.log('🔵 DEBUG: Attempting to save mood log:', {
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
-        uid: userProfile.uid
+        uid: userProfile.id
       });
 
       const savedLog = await saveMoodLog({
         mood: selectedMood,
         journalEntry: journalEntry.trim(),
         timestamp: new Date()
-      }, userProfile.uid);
+      }, userProfile.id);
 
       console.log('✅ DEBUG: Mood log saved successfully:', savedLog);
 

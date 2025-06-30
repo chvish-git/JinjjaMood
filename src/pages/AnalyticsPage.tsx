@@ -30,13 +30,13 @@ export const AnalyticsPage: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!userProfile?.uid) {
+      if (!userProfile?.id) {
         setLoading(false);
         return;
       }
 
       try {
-        const moodLogs = await getMoodLogs(userProfile.uid);
+        const moodLogs = await getMoodLogs(userProfile.id);
         setLogs(moodLogs);
       } catch (error) {
         console.error('Error loading mood logs:', error);
@@ -47,7 +47,7 @@ export const AnalyticsPage: React.FC = () => {
     };
 
     loadData();
-  }, [userProfile?.uid]);
+  }, [userProfile?.id]);
 
   const getFilteredLogs = () => {
     if (timeRange === 'all') return logs;

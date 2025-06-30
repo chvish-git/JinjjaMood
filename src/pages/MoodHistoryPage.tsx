@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { MoodHistorySkeleton } from '../components/skeletons/MoodHistorySkeleton';
 import { MoodHistoryEmptyState } from '../components/EmptyStates';
+import { getMoodOption } from '../data/moodOptions';
 
 type DateRange = '7' | '14' | '30' | 'all';
 type MoodFilter = 'all' | MoodType;
@@ -32,14 +33,14 @@ export const MoodHistoryPage: React.FC = () => {
 
   useEffect(() => {
     const loadLogs = async () => {
-      if (!userProfile?.uid) {
+      if (!userProfile?.id) {
         setLoading(false);
         return;
       }
 
       try {
         setError(null);
-        const logs = await getMoodLogs(userProfile.uid);
+        const logs = await getMoodLogs(userProfile.id);
         const sortedLogs = logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setAllLogs(sortedLogs);
         
@@ -56,7 +57,7 @@ export const MoodHistoryPage: React.FC = () => {
     };
 
     loadLogs();
-  }, [userProfile?.uid]);
+  }, [userProfile?.id]);
 
   useEffect(() => {
     let filtered = [...allLogs];
@@ -77,16 +78,14 @@ export const MoodHistoryPage: React.FC = () => {
   }, [allLogs, dateRange, moodFilter]);
 
   const getMoodEmoji = (mood: string) => {
-    const emojiMap: { [key: string]: string } = {
-      'joyful': '😊', 'productive': '💪', 'calm': '🧘', 'grateful': '🙏', 'energized': '⚡', 'confident': '✨',
-      'meh': '😑', 'blank': '😶', 'tired': '😴', 'chill': '😎', 'focused': '🎯', 'neutral': '😐',
-      'anxious': '😰', 'angry': '😠', 'stressed': '😵', 'low energy': '🔋', 'overwhelmed': '🌊', 'sad': '😢',
-      'ungovernable': '😈', 'CEO mode': '👑', 'fluff cloud': '☁️', 'main character': '🌟', 'chaos gremlin': '🔥', 'soft launch': '🌸'
-    };
-    return emojiMap[mood] || '😐';
+    const moodOption = getMoodOption(mood as any);
+    return moodOption?.emoji || '😐';
   };
 
   const getMoodColor = (mood: string) => {
+    const moodOption = getMoodOption(mood as any);
+    if (!moodOption) return 'bg-gray-500';
+    
     const colorMap: { [key: string]: string } = {
       'joyful': 'bg-yellow-500', 'productive': 'bg-green-500', 'calm': 'bg-blue-500', 'grateful': 'bg-purple-500', 'energized': 'bg-amber-500', 'confident': 'bg-indigo-500',
       'meh': 'bg-gray-500', 'blank': 'bg-stone-500', 'tired': 'bg-slate-500', 'chill': 'bg-teal-500', 'focused': 'bg-emerald-500', 'neutral': 'bg-gray-500',
