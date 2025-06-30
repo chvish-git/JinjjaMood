@@ -269,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
 
-      // Directly attempt Supabase authentication without pre-checking user existence
+      // Attempt Supabase authentication
       console.log('🔵 DEBUG: Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
@@ -287,6 +287,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           errorMessage = 'Check your email and confirm your account first, bestie.';
         } else if (error.message.includes('Too many requests')) {
           errorMessage = 'Too many tries. Chill for a bit and come back.';
+        } else if (error.message.includes('User not found')) {
+          errorMessage = 'No account with that email. Feeling new? Try signing up.';
         }
         
         return { success: false, error: errorMessage };
