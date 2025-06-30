@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff, Shield } from 'lucide-react';
+import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff, Shield, HelpCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
@@ -23,6 +23,7 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showLoginHelp, setShowLoginHelp] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     email?: string;
     password?: string;
@@ -68,6 +69,7 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setSuccessMessage('');
     setIsProcessing(true);
+    setShowLoginHelp(false);
     
     // Validate inputs
     const emailError = validateEmail(emailInput);
@@ -146,13 +148,15 @@ export const LoginPage: React.FC = () => {
         } else if (result.error) {
           setErrorMessage(result.error);
           
-          // Show specific toasts for different errors
-          if (result.error.includes('No account with that email')) {
-            toast.error('No account with that email. Feeling new? Try signing up.', {
+          // Show login help for credential errors
+          if (result.error.includes('That ain\'t the one') || result.error.includes('Invalid login credentials')) {
+            setShowLoginHelp(true);
+            toast.error('That ain\'t the one. Try again?', {
               style: { fontWeight: '600' }
             });
-          } else if (result.error.includes('That ain\'t the one')) {
-            toast.error('That ain\'t the one. Try again?', {
+          } else if (result.error.includes('No account with that email')) {
+            setShowLoginHelp(true);
+            toast.error('No account with that email. Feeling new? Try signing up.', {
               style: { fontWeight: '600' }
             });
           } else {
@@ -178,6 +182,7 @@ export const LoginPage: React.FC = () => {
     setEmailInput(e.target.value.toLowerCase());
     setErrorMessage('');
     setSuccessMessage('');
+    setShowLoginHelp(false);
     
     // Real-time validation
     const error = validateEmail(e.target.value);
@@ -188,6 +193,7 @@ export const LoginPage: React.FC = () => {
     setPasswordInput(e.target.value);
     setErrorMessage('');
     setSuccessMessage('');
+    setShowLoginHelp(false);
     
     // Real-time validation
     const error = validatePassword(e.target.value);
@@ -316,6 +322,7 @@ export const LoginPage: React.FC = () => {
                     setIsSignupMode(false);
                     setErrorMessage('');
                     setSuccessMessage('');
+                    setShowLoginHelp(false);
                     setValidationErrors({});
                   }}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
@@ -336,6 +343,7 @@ export const LoginPage: React.FC = () => {
                     setIsSignupMode(true);
                     setErrorMessage('');
                     setSuccessMessage('');
+                    setShowLoginHelp(false);
                     setValidationErrors({});
                   }}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
@@ -378,6 +386,26 @@ export const LoginPage: React.FC = () => {
                   <div className="text-sm">
                     <p className="font-medium mb-1">Oops!</p>
                     <p>{errorMessage}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Login Help Message */}
+            {showLoginHelp && !isSignupMode && (
+              <div className={`mb-4 p-4 rounded-xl border ${
+                isDark ? 'bg-blue-500/20 border-blue-500/30 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800'
+              }`}>
+                <div className="flex items-start gap-2">
+                  <HelpCircle size={16} className="mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium mb-2">Need help logging in?</p>
+                    <ul className="space-y-1 text-xs">
+                      <li>• Double-check your email address for typos</li>
+                      <li>• Make sure you're using the correct password</li>
+                      <li>• If you haven't signed up yet, try the "Sign Up" tab</li>
+                      <li>• Passwords are case-sensitive</li>
+                    </ul>
                   </div>
                 </div>
               </div>
