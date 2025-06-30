@@ -49,19 +49,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
       const result = await updateUsername(newUsername.trim());
       
       if (result.success) {
-        toast.success('Username updated successfully! ✨', {
+        toast.success('Fresh new name. We love a rebrand.', {
           duration: 3000,
           style: {
             background: '#10B981',
             color: '#fff',
+            fontWeight: '600',
           },
         });
         setIsEditing(false);
       } else {
-        toast.error(result.error || 'Failed to update username');
+        toast.error(result.error || 'Username update failed. The servers are being moody.', {
+          style: { fontWeight: '600' }
+        });
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update username');
+      toast.error(error.message || 'Username update failed. The servers are being moody.', {
+        style: { fontWeight: '600' }
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -73,20 +78,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
       const result = await deleteAccount();
       
       if (result.success) {
-        toast.success('Account deleted successfully. Goodbye! 👋', {
+        toast.success('Mood erased. ✨ Who even were you?', {
           duration: 4000,
           style: {
             background: '#EF4444',
             color: '#fff',
+            fontWeight: '600',
           },
         });
         // The AuthGuard will automatically redirect to LoginPage
       } else {
-        toast.error(result.error || 'Failed to delete account');
+        toast.error(result.error || 'Account deletion failed. The servers are being stubborn.', {
+          style: { fontWeight: '600' }
+        });
         setShowDeleteConfirm(false);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete account');
+      toast.error(error.message || 'Account deletion failed. The servers are being stubborn.', {
+        style: { fontWeight: '600' }
+      });
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
@@ -149,7 +159,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isDark }) => {
                 <div>
                   <p className="text-sm font-medium">@{userProfile.username}</p>
                   <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Member since {userProfile.createdAt.toLocaleDateString()}
+                    Member since {userProfile.created_at.toLocaleDateString()}
                   </p>
                 </div>
                 <button

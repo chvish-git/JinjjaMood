@@ -7,6 +7,7 @@ import { getMoodLogs } from '../utils/storage';
 import { calculateMoodStats } from '../utils/moodAnalysis';
 import { MoodLog } from '../types/mood';
 import { ProfileSkeleton } from '../components/skeletons/ProfileSkeleton';
+import { getMoodOption } from '../data/moodOptions';
 import toast from 'react-hot-toast';
 
 export const ProfilePage: React.FC = () => {
@@ -130,13 +131,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   const getMoodEmoji = (mood: string) => {
-    const emojiMap: { [key: string]: string } = {
-      'joyful': '😊', 'productive': '💪', 'calm': '🧘', 'grateful': '🙏', 'energized': '⚡', 'confident': '✨',
-      'meh': '😑', 'blank': '😶', 'tired': '😴', 'chill': '😎', 'focused': '🎯', 'neutral': '😐',
-      'anxious': '😰', 'angry': '😠', 'stressed': '😵', 'low energy': '🔋', 'overwhelmed': '🌊', 'sad': '😢',
-      'ungovernable': '😈', 'CEO mode': '👑', 'fluff cloud': '☁️', 'main character': '🌟', 'chaos gremlin': '🔥', 'soft launch': '🌸'
-    };
-    return emojiMap[mood] || '😐';
+    const moodOption = getMoodOption(mood as any);
+    return moodOption?.emoji || '😐';
   };
 
   if (loading) {
