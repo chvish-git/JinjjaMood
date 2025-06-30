@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
@@ -579,13 +579,13 @@ export const LoginPage: React.FC = () => {
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <CheckCircle size={16} className="text-green-600" />
+              <Shield size={16} className="text-green-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Secure & Private
               </span>
             </div>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Your data is protected with Firebase Authentication and encrypted storage. 
+              Your data is protected and encrypted with Supabase. 
               We respect your privacy and never share your personal information.
             </p>
           </div>
