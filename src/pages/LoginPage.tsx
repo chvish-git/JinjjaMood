@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Sparkles, AlertCircle, CheckCircle, ArrowRight, Loader, Eye, EyeOff, Send, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
-  const { signup, login, loading, isAuthenticated } = useAuth();
+  const { signup, signupWithOtp, signInWithOtp, verifyOtp, login, loading, isAuthenticated } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   
-  // Parse URL params for mode
+  // Parse URL params for mode and verification
   const urlParams = new URLSearchParams(location.search);
   const urlMode = urlParams.get('mode');
+  const isVerified = urlParams.get('verified') === 'true';
   const [isSignupMode, setIsSignupMode] = useState(urlMode === 'signup');
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('otp'); // Default to OTP
   
   // Form inputs
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [usernameInput, setUsernameInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -28,6 +31,8 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [waitingForVerification, setWaitingForVerification] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
 
   // Get the intended destination from location state
   const from = location.state?.from?.pathname || '/mood';
@@ -35,6 +40,26 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  // Handle email verification from magic link
+  useEffect(() => {
+    if (isVerified && !isAuthenticated) {
+      setSuccessMessage('Email verified! Welcome to JinjjaMood! ✨');
+      toast.success('Welcome to JinjjaMood! ✨', {
+        duration: 4000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          fontWeight: '600',
+        },
+      });
+      
+      // Clear URL params
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('verified');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [isVerified, isAuthenticated]);
 
   // Redirect if already logged in - only after visibility is set
   useEffect(() => {
@@ -76,6 +101,8 @@ export const LoginPage: React.FC = () => {
     setIsSignupMode(newMode === 'signup');
     setErrorMessage('');
     setSuccessMessage('');
+    setWaitingForVerification(false);
+    setShowOtpInput(false);
     
     // Update URL without triggering navigation
     const newUrl = new URL(window.location.href);
@@ -83,7 +110,73 @@ export const LoginPage: React.FC = () => {
     window.history.replaceState({}, '', newUrl.toString());
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsProcessing(true);
+    
+    // Validate inputs
+    const emailError = validateEmail(emailInput);
+    const usernameError = isSignupMode ? validateUsername(usernameInput) : '';
+    
+    if (emailError || usernameError) {
+      setErrorMessage(emailError || usernameError);
+      setIsProcessing(false);
+      return;
+    }
+    
+    try {
+      let result;
+      
+      if (isSignupMode) {
+        result = await signupWithOtp(emailInput, usernameInput);
+        
+        if (result.success && result.needsVerification) {
+          setSuccessMessage(`Magic link sent to ${emailInput}! Check your inbox and click the link to complete signup. ✨`);
+          setWaitingForVerification(true);
+          toast.success('Magic link sent! Check your email 📧', {
+            duration: 5000,
+            style: {
+              background: '#8B5CF6',
+              color: '#fff',
+              fontWeight: '600',
+            },
+          });
+        } else if (result.error) {
+          setErrorMessage(result.error);
+          toast.error(result.error);
+        }
+      } else {
+        result = await signInWithOtp(emailInput);
+        
+        if (result.success && result.needsVerification) {
+          setSuccessMessage(`Magic link sent to ${emailInput}! Check your inbox and click the link to sign in. ✨`);
+          setWaitingForVerification(true);
+          toast.success('Magic link sent! Check your email 📧', {
+            duration: 5000,
+            style: {
+              background: '#8B5CF6',
+              color: '#fff',
+              fontWeight: '600',
+            },
+          });
+        } else if (result.error) {
+          setErrorMessage(result.error);
+          toast.error(result.error);
+        }
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      const errorMsg = err.message || 'Something went sideways. Try again?';
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
@@ -164,7 +257,11 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const isButtonDisabled = isProcessing || loading || 
+  const isOtpButtonDisabled = isProcessing || loading || 
+    emailInput.length === 0 || 
+    (isSignupMode && usernameInput.length < 2);
+
+  const isPasswordButtonDisabled = isProcessing || loading || 
     emailInput.length === 0 || passwordInput.length === 0 || 
     (isSignupMode && usernameInput.length < 2);
 
@@ -258,6 +355,46 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Auth Method Toggle */}
+            <div className="flex justify-center mb-6">
+              <div className={`flex rounded-xl p-1 border ${
+                isDark 
+                  ? 'bg-slate-700/50 border-slate-600' 
+                  : 'bg-gray-100 border-gray-200'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('otp')}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 ${
+                    authMethod === 'otp'
+                      ? isDark
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-500 text-white'
+                      : isDark 
+                        ? 'text-gray-400 hover:text-white' 
+                        : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  ✨ Magic Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('password')}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 ${
+                    authMethod === 'password'
+                      ? isDark
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-500 text-white'
+                      : isDark 
+                        ? 'text-gray-400 hover:text-white' 
+                        : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  🔒 Password
+                </button>
+              </div>
+            </div>
+
             {/* Success Message */}
             {successMessage && (
               <div className={`mb-4 p-4 rounded-xl border ${
@@ -282,8 +419,23 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
+            {/* Waiting for Verification Message */}
+            {waitingForVerification && (
+              <div className={`mb-4 p-4 rounded-xl border ${
+                isDark ? 'bg-blue-500/20 border-blue-500/30 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800'
+              }`}>
+                <div className="flex items-start gap-2">
+                  <Clock size={16} className="mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Check your email!</p>
+                    <p className="text-xs mt-1">Click the magic link we sent to complete your {isSignupMode ? 'signup' : 'signin'}.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Auth Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={authMethod === 'otp' ? handleOtpSubmit : handlePasswordSubmit} className="space-y-4">
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className={`block text-sm font-medium mb-2 ${
@@ -352,82 +504,86 @@ export const LoginPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Password
-                </label>
-                <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
-                    isDark ? 'text-gray-400' : 'text-gray-400'
-                  }`}>
-                    <Lock className="h-5 w-5" />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder={isSignupMode ? "make it strong" : "your secret"}
-                    className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
-                      isDark 
-                        ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
-                        : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
-                    }`}
-                    required
-                    disabled={isProcessing}
-                    autoComplete={isSignupMode ? "new-password" : "current-password"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    disabled={isProcessing}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
-                    ) : (
-                      <Eye className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
-                    )}
-                  </button>
-                </div>
-                {isSignupMode && (
-                  <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                    Minimum 6 characters
-                  </p>
-                )}
-              </div>
-
-              {/* Remember Me Checkbox */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className={`h-4 w-4 rounded border-2 transition-all duration-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 ${
-                      isDark 
-                        ? 'bg-white/10 border-white/20 text-purple-600 focus:border-purple-400' 
-                        : 'bg-white border-gray-300 text-purple-600 focus:border-purple-500'
-                    }`}
-                    disabled={isProcessing}
-                  />
-                  <label htmlFor="remember-me" className={`ml-2 block text-sm font-medium ${
+              {/* Password Field (Password method only) */}
+              {authMethod === 'password' && (
+                <div>
+                  <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
                     isDark ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Remember me
+                    Password
                   </label>
+                  <div className="relative">
+                    <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+                      isDark ? 'text-gray-400' : 'text-gray-400'
+                    }`}>
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder={isSignupMode ? "make it strong" : "your secret"}
+                      className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                        isDark 
+                          ? 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:border-white/40' 
+                          : 'bg-white text-gray-800 placeholder-gray-500 border-gray-300'
+                      }`}
+                      required
+                      disabled={isProcessing}
+                      autoComplete={isSignupMode ? "new-password" : "current-password"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      disabled={isProcessing}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
+                      ) : (
+                        <Eye className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
+                      )}
+                    </button>
+                  </div>
+                  {isSignupMode && (
+                    <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Minimum 6 characters
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Remember Me Checkbox (Password method only) */}
+              {authMethod === 'password' && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="remember-me"
+                      name="remember-me"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className={`h-4 w-4 rounded border-2 transition-all duration-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 ${
+                        isDark 
+                          ? 'bg-white/10 border-white/20 text-purple-600 focus:border-purple-400' 
+                          : 'bg-white border-gray-300 text-purple-600 focus:border-purple-500'
+                      }`}
+                      disabled={isProcessing}
+                    />
+                    <label htmlFor="remember-me" className={`ml-2 block text-sm font-medium ${
+                      isDark ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Remember me
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
-                disabled={isButtonDisabled}
+                disabled={authMethod === 'otp' ? isOtpButtonDisabled : isPasswordButtonDisabled}
                 aria-label={isSignupMode ? "Create account" : "Sign in to account"}
                 className={`w-full py-4 px-6 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden ${
                   isDark 
@@ -439,17 +595,46 @@ export const LoginPage: React.FC = () => {
                   {isProcessing ? (
                     <>
                       <Loader className="animate-spin h-5 w-5 text-white" />
-                      <span className="text-white">{isSignupMode ? 'Creating Account...' : 'Signing In...'}</span>
+                      <span className="text-white">
+                        {authMethod === 'otp' 
+                          ? 'Sending magic link...' 
+                          : isSignupMode ? 'Creating Account...' : 'Signing In...'
+                        }
+                      </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-white">{isSignupMode ? 'Join the Vibe' : 'Enter the Zone'}</span>
-                      <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300 text-white" />
+                      {authMethod === 'otp' ? (
+                        <>
+                          <Send size={18} className="text-white" />
+                          <span className="text-white">
+                            {isSignupMode ? 'Send Magic Link' : 'Send Magic Link'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-white">{isSignupMode ? 'Join the Vibe' : 'Enter the Zone'}</span>
+                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300 text-white" />
+                        </>
+                      )}
                     </>
                   )}
                 </span>
               </button>
             </form>
+
+            {/* Method Description */}
+            <div className={`mt-4 text-center text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {authMethod === 'otp' ? (
+                <p>
+                  ✨ We'll send you a magic link - no password needed! Check your email and click to {isSignupMode ? 'complete signup' : 'sign in'}.
+                </p>
+              ) : (
+                <p>
+                  🔒 Traditional email and password authentication.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </main>

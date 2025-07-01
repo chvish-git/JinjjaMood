@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navigation } from './components/Navigation';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
+import { OtpVerificationPage } from './pages/OtpVerificationPage';
 import { MoodCheckPage } from './pages/MoodCheckPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { MoodHistoryPage } from './pages/MoodHistoryPage';
@@ -30,6 +31,7 @@ function App() {
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/verify" element={<OtpVerificationPage />} />
               
               {/* Protected routes */}
               <Route path="/mood" element={

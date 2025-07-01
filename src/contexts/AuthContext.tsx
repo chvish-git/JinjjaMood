@@ -17,6 +17,9 @@ interface AuthContextType {
   authLoading: boolean;
   error: string | null;
   signup: (email: string, password: string, username: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  signupWithOtp: (email: string, username: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
+  signInWithOtp: (email: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
+  verifyOtp: (email: string, token: string, type: 'signup' | 'magiclink') => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<{ success: boolean; error?: string }>;
@@ -149,6 +152,203 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signupWithOtp = async (email: string, username: string): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
+    // Validation
+    if (!email || !username) {
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedUsername = username.trim().toLowerCase();
+    
+    // Basic validation
+    if (trimmedUsername.length < 2) {
+      return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
+    }
+    
+    if (trimmedUsername.length > 20) {
+      return { success: false, error: 'Username\'s too long. Keep it snappy!' };
+    }
+    
+    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+      return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('🔵 DEBUG: Starting OTP signup process for username:', trimmedUsername);
+
+      // Check if email already exists
+      const emailExists = await checkEmailExists(trimmedEmail);
+      if (emailExists) {
+        return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
+      }
+
+      // Check if username is already taken
+      const usernameExists = await checkUsernameExists(trimmedUsername);
+      if (usernameExists) {
+        return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
+      }
+
+      // Store username temporarily for after verification
+      localStorage.setItem('jinjjamood_pending_username', trimmedUsername);
+      localStorage.setItem('jinjjamood_pending_email', trimmedEmail);
+
+      // Send magic link
+      console.log('🔵 DEBUG: Sending magic link to:', trimmedEmail);
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true`,
+        }
+      });
+
+      if (otpError) {
+        console.error('❌ DEBUG: OTP signup error:', otpError);
+        return { success: false, error: otpError.message || 'Magic link failed. The servers are being moody.' };
+      }
+
+      console.log('✅ DEBUG: Magic link sent successfully');
+      return { success: true, needsVerification: true };
+      
+    } catch (err: any) {
+      console.error('❌ DEBUG: Signup error:', err);
+      
+      let errorMessage = 'Something went sideways. Try again?';
+      
+      if (err.message?.includes('offline')) {
+        errorMessage = 'Mood radar\'s down. Try again in a sec?';
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithOtp = async (email: string): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
+    // Validation
+    if (!email) {
+      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+
+    try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('🔵 DEBUG: Starting OTP signin process for email:', trimmedEmail);
+
+      // Check if email exists
+      const emailExists = await checkEmailExists(trimmedEmail);
+      if (!emailExists) {
+        return { success: false, error: 'No account with that email. Feeling new? Try signing up.' };
+      }
+
+      // Send magic link
+      console.log('🔵 DEBUG: Sending magic link to:', trimmedEmail);
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true`,
+        }
+      });
+
+      if (otpError) {
+        console.error('❌ DEBUG: OTP signin error:', otpError);
+        return { success: false, error: otpError.message || 'Magic link failed. The servers are being moody.' };
+      }
+
+      console.log('✅ DEBUG: Magic link sent successfully');
+      return { success: true, needsVerification: true };
+      
+    } catch (err: any) {
+      console.error('❌ DEBUG: Signin error:', err);
+      
+      let errorMessage = 'Magic link failed. The servers are being moody.';
+      
+      if (err.message?.includes('offline')) {
+        errorMessage = 'Mood radar\'s down. Try again in a sec?';
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (email: string, token: string, type: 'signup' | 'magiclink'): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('🔵 DEBUG: Verifying OTP for email:', email);
+
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: type === 'signup' ? 'signup' : 'magiclink'
+      });
+
+      if (error) {
+        console.error('❌ DEBUG: OTP verification error:', error);
+        return { success: false, error: error.message || 'Verification failed. Try again?' };
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'Verification failed. Try again?' };
+      }
+
+      // If this was a signup, create the user profile
+      if (type === 'signup') {
+        const pendingUsername = localStorage.getItem('jinjjamood_pending_username');
+        const pendingEmail = localStorage.getItem('jinjjamood_pending_email');
+        
+        if (pendingUsername && pendingEmail) {
+          console.log('🔵 DEBUG: Creating user profile after OTP verification...');
+          
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              username: pendingUsername,
+              email: pendingEmail,
+            });
+
+          if (profileError) {
+            console.error('❌ DEBUG: Error creating user profile:', profileError);
+            return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
+          }
+
+          // Clean up temporary storage
+          localStorage.removeItem('jinjjamood_pending_username');
+          localStorage.removeItem('jinjjamood_pending_email');
+          
+          console.log('✅ DEBUG: User profile created successfully');
+        }
+      }
+
+      console.log('✅ DEBUG: OTP verification completed successfully');
+      return { success: true };
+      
+    } catch (err: any) {
+      console.error('❌ DEBUG: Verification error:', err);
+      return { success: false, error: err.message || 'Verification failed. Try again?' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Keep existing password-based methods for backward compatibility
   const signup = async (email: string, password: string, username: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
     // Validation
     if (!email || !password || !username) {
@@ -441,6 +641,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear localStorage first
       localStorage.removeItem('jinjjamood_currentUser');
       localStorage.removeItem('jinjjamood_rememberMe');
+      localStorage.removeItem('jinjjamood_pending_username');
+      localStorage.removeItem('jinjjamood_pending_email');
       console.log('🟡 DEBUG: localStorage cleared');
       
       // Sign out from Supabase Auth
@@ -486,6 +688,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authLoading,
     error,
     signup,
+    signupWithOtp,
+    signInWithOtp,
+    verifyOtp,
     login,
     logout,
     updateUsername,
