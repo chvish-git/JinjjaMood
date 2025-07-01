@@ -92,10 +92,7 @@ export const LoginPage: React.FC = () => {
               fontWeight: '600',
             },
           });
-          
-          setTimeout(() => {
-            navigate(from, { replace: true });
-          }, 1500);
+          // Navigation will be handled by the useEffect when isAuthenticated becomes true
         } else if (result.error) {
           setErrorMessage(result.error);
           
@@ -120,10 +117,7 @@ export const LoginPage: React.FC = () => {
               fontWeight: '600',
             },
           });
-          
-          setTimeout(() => {
-            navigate(from, { replace: true });
-          }, 1000);
+          // Navigation will be handled by the useEffect when isAuthenticated becomes true
         } else if (result.error) {
           setErrorMessage(result.error);
           
