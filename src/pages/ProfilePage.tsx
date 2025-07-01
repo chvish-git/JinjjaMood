@@ -6,7 +6,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { getMoodLogs } from '../utils/storage';
 import { MoodLog } from '../types/mood';
 import { getMoodOption } from '../data/moodOptions';
-import { calculateMoodStats, calculateStreaks } from '../utils/moodAnalytics';
+import { calculateMoodStats } from '../utils/moodAnalysis';
+import { calculateStreaks } from '../utils/moodAnalytics';
 import { getMoodValue } from '../data/moodOptions';
 import toast from 'react-hot-toast';
 
