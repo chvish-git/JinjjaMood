@@ -166,14 +166,14 @@ CREATE TRIGGER trigger_set_mood_log_day
   during signup without exposing sensitive data.
 */
 
--- Function to check if email exists
+-- Function to check if email exists (checks auth.users for accurate results)
 CREATE OR REPLACE FUNCTION public.check_email_exists(p_email text)
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  RETURN EXISTS (SELECT 1 FROM public.users WHERE email = p_email);
+  RETURN EXISTS (SELECT 1 FROM auth.users WHERE email = p_email);
 END;
 $$;
 

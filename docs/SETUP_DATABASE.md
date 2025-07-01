@@ -26,9 +26,25 @@ Your Supabase database is missing the required tables and RPC functions, causing
    - Paste it into the SQL Editor
    - Click "Run" to execute
 
+5. **Fix Email Check Function** (Important!)
+   - Run this additional SQL to fix the email validation:
+
+```sql
+-- Update email check function to query auth.users instead of public.users
+CREATE OR REPLACE FUNCTION public.check_email_exists(p_email text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM auth.users WHERE email = p_email);
+END;
+$$;
+```
+
 ### Step 2: Verify the Setup
 
-After running both migrations, verify in your Supabase dashboard:
+After running all migrations, verify in your Supabase dashboard:
 
 1. **Check Tables** (Table Editor):
    - `users` table should exist with columns: id, username, email, created_at
@@ -60,6 +76,11 @@ After running both migrations, verify in your Supabase dashboard:
 ### Migration 2 (`20250630190917_calm_cliff.sql`):
 - Creates RPC functions for checking email/username existence
 - Grants proper permissions to anonymous users for signup validation
+
+### Email Check Function Fix:
+- Updates the `check_email_exists` function to query `auth.users` instead of `public.users`
+- This prevents "User already registered" errors by checking the authoritative authentication table
+- Ensures accurate pre-signup validation
 
 ## If You Still Have Issues
 
