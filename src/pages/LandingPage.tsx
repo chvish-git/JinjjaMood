@@ -14,25 +14,25 @@ export const LandingPage: React.FC = () => {
     setIsVisible(true);
   }, []);
 
-  // Redirect authenticated users to mood check
+  // Redirect authenticated users only after mount and visibility
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isVisible && isAuthenticated) {
       navigate('/mood');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, isVisible]);
 
   return (
     <div className={`min-h-screen transition-all duration-1000 ${
       isDark 
-        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-        : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+        ? 'bg-slate-900 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+        : 'bg-white bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
     }`}>
-      {/* Clean animated background - minimal */}
+      {/* Clean animated background - minimal with mobile optimization */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl animate-float ${
+        <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl md:animate-float ${
           isDark ? 'bg-purple-500' : 'bg-pink-300'
         }`}></div>
-        <div className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl animate-float delay-1000 ${
+        <div className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl md:animate-float delay-1000 ${
           isDark ? 'bg-blue-500' : 'bg-blue-300'
         }`}></div>
       </div>
@@ -41,6 +41,7 @@ export const LandingPage: React.FC = () => {
       <div className="absolute top-6 right-6 z-10">
         <button
           onClick={toggleTheme}
+          aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
           className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 backdrop-blur-sm ${
             isDark 
               ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
@@ -56,11 +57,11 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* Main content - centered and clean */}
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
         <div className="text-center space-y-12 max-w-4xl mx-auto">
           
           {/* Logo + tagline - clean and bold */}
-          <div className={`transform transition-all duration-1000 ${
+          <header className={`transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <h1 
@@ -78,14 +79,15 @@ export const LandingPage: React.FC = () => {
             }`}>
               Track your real feels. No filter.
             </p>
-          </div>
+          </header>
 
           {/* Clean action buttons - no clutter */}
           <div className={`flex flex-col sm:flex-row gap-4 justify-center transform transition-all duration-1000 delay-300 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?mode=signup')}
+              aria-label="Sign up for JinjjaMood"
               className="group relative inline-flex items-center gap-3 px-8 py-4 text-xl font-bold rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500"
             >
               <Sparkles size={24} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300" />
@@ -97,7 +99,8 @@ export const LandingPage: React.FC = () => {
             </button>
             
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?mode=signin')}
+              aria-label="Sign in to JinjjaMood"
               className={`px-8 py-4 text-xl font-bold rounded-full transition-all duration-300 transform hover:scale-105 ${
                 isDark 
                   ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
@@ -109,15 +112,15 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Minimal footer */}
-          <div className={`transform transition-all duration-1000 delay-600 ${
+          <footer className={`transform transition-all duration-1000 delay-600 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Real vibes only ✨
             </p>
-          </div>
+          </footer>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

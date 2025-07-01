@@ -11,7 +11,11 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
-  const [isSignupMode, setIsSignupMode] = useState(false);
+  
+  // Parse URL params for mode
+  const urlParams = new URLSearchParams(location.search);
+  const urlMode = urlParams.get('mode');
+  const [isSignupMode, setIsSignupMode] = useState(urlMode === 'signup');
   
   // Form inputs
   const [emailInput, setEmailInput] = useState('');
@@ -30,12 +34,21 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     setIsVisible(true);
-    
-    // Redirect if already logged in
-    if (isAuthenticated) {
+  }, []);
+
+  // Redirect if already logged in - only after visibility is set
+  useEffect(() => {
+    if (isVisible && isAuthenticated) {
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, navigate, from, isVisible]);
+
+  // Update mode when URL changes
+  useEffect(() => {
+    if (urlMode === 'signup' || urlMode === 'signin') {
+      setIsSignupMode(urlMode === 'signup');
+    }
+  }, [urlMode]);
 
   // Real-time validation
   const validateEmail = (email: string) => {
@@ -57,6 +70,17 @@ export const LoginPage: React.FC = () => {
     if (username.length > 20) return 'Username\'s too long. Keep it snappy!';
     if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) return 'Username can only have letters, numbers, and underscores. Keep it clean!';
     return '';
+  };
+
+  const handleModeChange = (newMode: 'signup' | 'signin') => {
+    setIsSignupMode(newMode === 'signup');
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    // Update URL without triggering navigation
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('mode', newMode);
+    window.history.replaceState({}, '', newUrl.toString());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,24 +171,24 @@ export const LoginPage: React.FC = () => {
   return (
     <div className={`min-h-screen ${
       isDark 
-        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
-        : 'bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
+        ? 'bg-slate-900 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+        : 'bg-white bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100'
     }`}>
-      {/* Animated background elements */}
+      {/* Animated background elements - optimized for mobile */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className={`absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-pulse ${
+        <div className={`absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl md:animate-pulse ${
           isDark ? 'bg-purple-500' : 'bg-pink-300'
         }`}></div>
-        <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse delay-1000 ${
+        <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl md:animate-pulse delay-1000 ${
           isDark ? 'bg-blue-500' : 'bg-blue-300'
         }`}></div>
       </div>
 
       {/* Main content */}
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative z-10">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-md mx-auto space-y-8">
           {/* Header */}
-          <div className={`text-center transform transition-all duration-1000 ${
+          <header className={`text-center transform transition-all duration-1000 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
             <h1 
@@ -182,7 +206,7 @@ export const LoginPage: React.FC = () => {
             }`}>
               {isSignupMode ? 'Join the vibe tribe ✨' : 'Welcome back, moodster 👋'}
             </p>
-          </div>
+          </header>
 
           {/* Auth Card */}
           <div className={`glass-strong rounded-3xl p-6 shadow-2xl transform transition-all duration-1000 delay-400 ${
@@ -190,18 +214,17 @@ export const LoginPage: React.FC = () => {
           }`}>
             {/* Mode Toggle */}
             <div className="flex justify-center mb-6">
-              <div className={`flex rounded-2xl p-1 border-2 ${
+              <div className={`rounded-2xl p-1 w-full max-w-2xl border-2 ${
                 isDark 
                   ? 'bg-slate-800/90 border-slate-600' 
                   : 'bg-white/95 border-gray-300'
-              }`}>
+              }`} role="tablist" aria-label="Authentication mode">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsSignupMode(false);
-                    setErrorMessage('');
-                    setSuccessMessage('');
-                  }}
+                  role="tab"
+                  aria-selected={!isSignupMode}
+                  aria-label="Switch to sign in mode"
+                  onClick={() => handleModeChange('signin')}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                     !isSignupMode
                       ? isDark
@@ -216,11 +239,10 @@ export const LoginPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsSignupMode(true);
-                    setErrorMessage('');
-                    setSuccessMessage('');
-                  }}
+                  role="tab"
+                  aria-selected={isSignupMode}
+                  aria-label="Switch to sign up mode"
+                  onClick={() => handleModeChange('signup')}
                   className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                     isSignupMode
                       ? isDark
@@ -240,7 +262,7 @@ export const LoginPage: React.FC = () => {
             {successMessage && (
               <div className={`mb-4 p-4 rounded-xl border ${
                 isDark ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-green-50 border-green-200 text-green-800'
-              }`}>
+              }`} role="alert">
                 <div className="flex items-start gap-2">
                   <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
                   <p className="text-sm font-medium">{successMessage}</p>
@@ -252,7 +274,7 @@ export const LoginPage: React.FC = () => {
             {errorMessage && (
               <div className={`mb-4 p-4 rounded-xl border ${
                 isDark ? 'bg-red-500/20 border-red-500/30 text-red-300' : 'bg-red-50 border-red-200 text-red-800'
-              }`}>
+              }`} role="alert">
                 <div className="flex items-start gap-2">
                   <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                   <p className="text-sm font-medium">{errorMessage}</p>
@@ -288,6 +310,7 @@ export const LoginPage: React.FC = () => {
                     }`}
                     required
                     disabled={isProcessing}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -320,6 +343,7 @@ export const LoginPage: React.FC = () => {
                       maxLength={20}
                       required
                       disabled={isProcessing}
+                      autoComplete="username"
                     />
                   </div>
                   <p className={`mt-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
@@ -354,12 +378,14 @@ export const LoginPage: React.FC = () => {
                     }`}
                     required
                     disabled={isProcessing}
+                    autoComplete={isSignupMode ? "new-password" : "current-password"}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     disabled={isProcessing}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
                       <EyeOff className={`h-5 w-5 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
@@ -402,6 +428,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isButtonDisabled}
+                aria-label={isSignupMode ? "Create account" : "Sign in to account"}
                 className={`w-full py-4 px-6 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden ${
                   isDark 
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-400 hover:to-purple-500' 
@@ -425,7 +452,7 @@ export const LoginPage: React.FC = () => {
             </form>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
