@@ -6,6 +6,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { getMoodLogs } from '../utils/storage';
 import { MoodLog } from '../types/mood';
 import { getMoodOption } from '../data/moodOptions';
+import { calculateMoodStats, calculateStreaks } from '../utils/moodAnalytics';
+import { getMoodValue } from '../data/moodOptions';
 import toast from 'react-hot-toast';
 
 export const ProfilePage: React.FC = () => {
@@ -128,11 +130,17 @@ export const ProfilePage: React.FC = () => {
     return moodOption?.emoji || '😐';
   };
 
-  // Calculate stats
+  // Calculate dynamic stats using utility functions
+  const stats = calculateMoodStats(moodLogs);
+  const streaks = calculateStreaks(moodLogs);
+
+  // Calculate additional stats
   const totalEntries = moodLogs.length;
-  const currentStreak = 1; // Simplified for now
-  const averageMood = 3.5; // Simplified for now
-  const mostCommonMood = moodLogs.length > 0 ? moodLogs[0].mood : 'neutral';
+  const averageMood = moodLogs.length > 0 
+    ? (moodLogs.reduce((sum, log) => sum + getMoodValue(log.mood), 0) / moodLogs.length).toFixed(1)
+    : '0.0';
+  const mostCommonMood = stats.mostCommonMood || 'neutral';
+  const currentStreak = streaks.currentStreak;
 
   if (loading) {
     return (
@@ -350,7 +358,7 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Stats Grid */}
+          {/* Dynamic Stats Grid */}
           <div className={`mb-8 transform transition-all duration-1000 delay-400 ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
@@ -375,7 +383,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <p className="text-2xl font-bold">{currentStreak}</p>
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Current Streak
+                  🔥 You've logged moods for {currentStreak} days straight!
                 </p>
               </div>
 

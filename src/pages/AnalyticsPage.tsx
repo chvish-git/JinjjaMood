@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Calendar, TrendingUp, Download, Filter, RefreshCw, PieChart } from 'lucide-react';
+import { BarChart3, Calendar, TrendingUp, Download, Filter, RefreshCw } from 'lucide-react';
 import { getMoodLogs } from '../utils/storage';
 import { MoodLog } from '../types/mood';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { MoodDistributionPieChart } from '../components/analytics/MoodDistributionPieChart';
 import { getMoodOption } from '../data/moodOptions';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
@@ -48,7 +49,7 @@ export const AnalyticsPage: React.FC = () => {
     loadData();
   }, [userProfile?.id]);
 
-  // Calculate mood distribution
+  // Calculate mood distribution for insights
   const getMoodDistribution = () => {
     const distribution = weeklyLogs.reduce((acc, log) => {
       const moodOption = getMoodOption(log.mood as any);
@@ -214,8 +215,44 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Daily History */}
+        {/* Weekly Mood Distribution Chart */}
         <div className={`max-w-4xl mx-auto mb-8 transform transition-all duration-1000 delay-300 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        }`}>
+          <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
+            isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
+          }`}>
+            <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Weekly Mood Distribution
+            </h3>
+            
+            {weeklyLogs.length > 0 ? (
+              <MoodDistributionPieChart logs={weeklyLogs} isDark={isDark} />
+            ) : (
+              <div className="text-center py-8">
+                <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  No mood data for this week yet. Start logging to see your patterns!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Insight Caption */}
+        <div className={`max-w-4xl mx-auto mb-8 transform transition-all duration-1000 delay-400 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        }`}>
+          <div className={`p-6 rounded-2xl backdrop-blur-sm border text-center ${
+            isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
+          }`}>
+            <p className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              {getInsightCaption()}
+            </p>
+          </div>
+        </div>
+
+        {/* Daily History */}
+        <div className={`max-w-4xl mx-auto mb-8 transform transition-all duration-1000 delay-500 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}>
           <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
@@ -256,59 +293,6 @@ export const AnalyticsPage: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        </div>
-
-        {/* Weekly Summary */}
-        <div className={`max-w-4xl mx-auto mb-8 transform transition-all duration-1000 delay-400 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
-          <div className={`p-6 rounded-2xl backdrop-blur-sm border ${
-            isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-gray-200'
-          }`}>
-            <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Mood Distribution
-            </h3>
-            
-            {/* Pie Chart Visualization */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-lg">
-                  {distribution.positive}%
-                </div>
-                <div className="text-sm font-medium">🟢 Positive</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-yellow-500 flex items-center justify-center text-white font-bold text-lg">
-                  {distribution.neutral}%
-                </div>
-                <div className="text-sm font-medium">🟡 Neutral</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                  {distribution.negative}%
-                </div>
-                <div className="text-sm font-medium">🔵 Negative</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                  {distribution.bonus}%
-                </div>
-                <div className="text-sm font-medium">🔥 Bonus</div>
-              </div>
-            </div>
-
-            {/* Insight Caption */}
-            <div className={`text-center p-4 rounded-xl ${
-              isDark ? 'bg-white/5' : 'bg-gray-50'
-            }`}>
-              <p className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                {getInsightCaption()}
-              </p>
             </div>
           </div>
         </div>
