@@ -16,11 +16,9 @@ interface AuthContextType {
   loading: boolean;
   authLoading: boolean;
   error: string | null;
-  signup: (email: string, password: string, username: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   signupWithOtp: (email: string, username: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
   signInWithOtp: (email: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
   verifyOtp: (email: string, token: string, type: 'signup' | 'magiclink') => Promise<{ success: boolean; error?: string }>;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
@@ -349,200 +347,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Keep existing password-based methods for backward compatibility
-  const signup = async (email: string, password: string, username: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
-    // Validation
-    if (!email || !password || !username) {
-      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
-    }
-
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
-    const trimmedUsername = username.trim().toLowerCase();
-    
-    // Basic validation
-    if (trimmedUsername.length < 2) {
-      return { success: false, error: 'Username needs at least 2 characters. Give it some substance!' };
-    }
-    
-    if (trimmedUsername.length > 20) {
-      return { success: false, error: 'Username\'s too long. Keep it snappy!' };
-    }
-    
-    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      return { success: false, error: 'Username can only have letters, numbers, and underscores. Keep it clean!' };
-    }
-
-    if (trimmedPassword.length < 6) {
-      return { success: false, error: 'Password needs at least 6 characters. Make it stronger!' };
-    }
-
-    try {
-      setError(null);
-      setLoading(true);
-      
-      console.log('🔵 DEBUG: Starting signup process for username:', trimmedUsername);
-
-      // Check if email already exists
-      const emailExists = await checkEmailExists(trimmedEmail);
-      if (emailExists) {
-        return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
-      }
-
-      // Check if username is already taken
-      const usernameExists = await checkUsernameExists(trimmedUsername);
-      if (usernameExists) {
-        return { success: false, error: 'That name\'s already vibin\' with someone else. Try another.' };
-      }
-
-      // Create Supabase account
-      console.log('🔵 DEBUG: Creating Supabase account...');
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
-
-      if (authError) {
-        console.error('❌ DEBUG: Supabase auth error:', authError);
-        
-        if (authError.message.includes('already registered')) {
-          return { success: false, error: 'You\'ve been here before. Wanna log in instead?' };
-        }
-        
-        return { success: false, error: authError.message || 'Signup failed. The servers are being moody.' };
-      }
-
-      if (!authData.user) {
-        console.error('❌ DEBUG: No user returned from auth signup');
-        return { success: false, error: 'Signup failed. The servers are being moody.' };
-      }
-
-      console.log('✅ DEBUG: Supabase account created successfully');
-
-      // Save user profile to users table
-      console.log('🔵 DEBUG: Saving user profile to database...');
-      const { data: profileData, error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          username: trimmedUsername,
-          email: trimmedEmail,
-        })
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error('❌ DEBUG: Error saving user profile:', profileError);
-        return { success: false, error: 'Profile creation failed. The servers are being stubborn.' };
-      }
-
-      console.log('✅ DEBUG: User profile saved successfully');
-
-      // Configure session persistence
-      if (authData.session) {
-        console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
-        
-        if (rememberMe) {
-          localStorage.setItem('jinjjamood_rememberMe', 'true');
-        } else {
-          localStorage.setItem('jinjjamood_rememberMe', 'false');
-        }
-      }
-
-      console.log('✅ DEBUG: Signup completed successfully');
-      return { success: true };
-      
-    } catch (err: any) {
-      console.error('❌ DEBUG: Signup error:', err);
-      
-      let errorMessage = 'Something went sideways. Try again?';
-      
-      if (err.message?.includes('offline')) {
-        errorMessage = 'Mood radar\'s down. Try again in a sec?';
-      } else if (err.message) {
-        errorMessage = `Error: ${err.message}`;
-      }
-      
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; error?: string }> => {
-    // Validation
-    if (!email || !password) {
-      return { success: false, error: 'Don\'t ghost the form. Fill it in, bestie.' };
-    }
-
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
-
-    try {
-      setError(null);
-      setLoading(true);
-      
-      console.log('🔵 DEBUG: Starting login process for email:', trimmedEmail);
-
-      // Attempt Supabase authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
-
-      if (error) {
-        console.error('❌ DEBUG: Login error:', error);
-        
-        let errorMessage = 'Login failed. The servers are being moody.';
-        
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'That ain\'t the one. Try again?';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Check your email and confirm your account first, bestie.';
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Too many tries. Chill for a bit and come back.';
-        } else if (error.message.includes('User not found')) {
-          errorMessage = 'No account with that email. Feeling new? Try signing up.';
-        }
-        
-        return { success: false, error: errorMessage };
-      }
-
-      if (!data.user) {
-        return { success: false, error: 'Login failed. The servers are being moody.' };
-      }
-
-      // Configure session persistence
-      if (data.session) {
-        console.log('🔵 DEBUG: Configuring session persistence, rememberMe:', rememberMe);
-        
-        if (rememberMe) {
-          localStorage.setItem('jinjjamood_rememberMe', 'true');
-        } else {
-          localStorage.setItem('jinjjamood_rememberMe', 'false');
-        }
-      }
-
-      console.log('✅ DEBUG: Login completed successfully for userId:', data.user.id);
-      return { success: true };
-      
-    } catch (err: any) {
-      console.error('❌ DEBUG: Login error:', err);
-      
-      let errorMessage = 'Login failed. The servers are being moody.';
-      
-      if (err.message?.includes('offline')) {
-        errorMessage = 'Mood radar\'s down. Try again in a sec?';
-      } else if (err.message) {
-        errorMessage = `Error: ${err.message}`;
-      }
-      
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateUsername = async (newUsername: string): Promise<{ success: boolean; error?: string }> => {
     if (!userProfile?.id) {
@@ -687,11 +491,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     authLoading,
     error,
-    signup,
     signupWithOtp,
     signInWithOtp,
     verifyOtp,
-    login,
     logout,
     updateUsername,
     deleteAccount,
